@@ -70,11 +70,52 @@ export default function App() {
         setActiveProjectId(null);
     };
 
+    const handleExportData = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projects));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "pathfinder_backup.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    };
+
+    const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const fileReader = new FileReader();
+        if (e.target.files && e.target.files[0]) {
+            fileReader.readAsText(e.target.files[0], "UTF-8");
+            fileReader.onload = (event) => {
+                if (event.target?.result) {
+                    try {
+                        const parsed = JSON.parse(event.target.result as string);
+                        if (Array.isArray(parsed)) {
+                            if (window.confirm(`Importing ${parsed.length} projects. This will replace current data. Continue?`)) {
+                                setProjects(parsed);
+                            }
+                        } else {
+                            alert("Invalid file format");
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert("Failed to parse JSON");
+                    }
+                }
+            };
+        }
+    };
+
     const activeProject = projects.find(p => p.id === activeProjectId);
 
     if (view === 'editor' && activeProject) {
         return <Editor project={activeProject} onSave={handleSaveProject} onBack={handleBack} />;
     }
 
-    return <Dashboard projects={projects} onCreateProject={handleCreateProject} onOpenProject={handleOpenProject} onDeleteProject={handleDeleteProject} />;
+    return <Dashboard
+        projects={projects}
+        onCreateProject={handleCreateProject}
+        onOpenProject={handleOpenProject}
+        onDeleteProject={handleDeleteProject}
+        onExportData={handleExportData}
+        onImportData={handleImportData}
+    />;
 }
