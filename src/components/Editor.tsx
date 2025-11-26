@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { ChevronLeft, Activity, Save, Menu, Plus, Edit2, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { ChevronLeft, Activity, Save, Menu, Plus, Edit2, ZoomIn, ZoomOut, Move, Download, Image as ImageIcon } from 'lucide-react';
 import { Project, Task, LayoutNode } from '../types';
 import { calculateCPM } from '../utils/cpmLogic';
 import { calculateLayout } from '../utils/layoutLogic';
 import { Node } from './Node';
 import { Connection } from './Connection';
 import { EditTaskModal } from './EditTaskModal';
+import { toPng } from 'html-to-image';
 
 interface EditorProps {
     project: Project;
@@ -29,11 +30,16 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string | null } | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Add Task Form State
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState<number | string>(1);
     const [newTaskPred, setNewTaskPred] = useState('');
+    const [newTaskType, setNewTaskType] = useState<'task' | 'start' | 'end'>('task');
+
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
+    const exportRef = useRef<HTMLDivElement>(null); // Ref for export
 
     const { processedData, projectDuration } = useMemo(() => {
         const { error, processedTasks, projectDuration } = calculateCPM(tasks);
@@ -47,6 +53,27 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
         onSave(project.id, tasks);
         setLastSaved(new Date());
         setTimeout(() => setLastSaved(null), 2000);
+    };
+
+    const handleExport = async () => {
+        if (exportRef.current === null) return;
+        try {
+            // Reset transform for capture to ensure full graph is visible?
+            // Actually, capturing the current view is usually what users expect,
+            // but for a large graph, we might want to capture the whole content.
+            // For simplicity, let's capture the current viewport or the container.
+            // Better yet: Capture the inner container that has the transform, but we need to handle the scale.
+            // Let's stick to capturing the visible area for now or the whole canvas container.
+
+            const dataUrl = await toPng(exportRef.current, { cacheBust: true, backgroundColor: '#f8fafc' });
+            const link = document.createElement('a');
+            link.download = `${project.name.replace(/\s+/g, '_')}_diagram.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (err) {
+            console.error('Failed to export image', err);
+            alert('Failed to export image.');
+        }
     };
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -64,8 +91,15 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
         const existingIds = tasks.map(t => t.id); let nextId = 'A'; let i = 0; while (existingIds.includes(String.fromCharCode(65 + i))) i++; nextId = String.fromCharCode(65 + i); if (i > 25) nextId = `T${tasks.length + 1}`;
         const preds = newTaskPred.split(',').map(s => s.trim().toUpperCase()).filter(s => s !== '');
         if (preds.filter(p => !tasks.map(t => t.id).includes(p)).length > 0) { setErrorMsg("Invalid IDs"); return; }
-        setTasks([...tasks, { id: nextId, name: newTaskName, duration: parseInt(newTaskDuration as string) || 1, predecessors: preds }]);
-        setNewTaskName(''); setNewTaskPred(''); setErrorMsg(null);
+
+        setTasks([...tasks, {
+            id: nextId,
+            name: newTaskName,
+            duration: newTaskType === 'task' ? (parseInt(newTaskDuration as string) || 1) : 0,
+            predecessors: preds,
+            type: newTaskType
+        }]);
+        setNewTaskName(''); setNewTaskPred(''); setErrorMsg(null); setNewTaskType('task');
     };
     const removeTask = (id: string) => {
         setTasks(tasks.filter(t => t.id !== id).map(t => ({ ...t, predecessors: t.predecessors.filter(p => p !== id) })));
@@ -114,6 +148,9 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button onClick={handleExport} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg text-sm hover:bg-slate-50 flex items-center gap-2 transition-all">
+                        <ImageIcon size={16} /> <span className="hidden md:inline">Export PNG</span>
+                    </button>
                     <button onClick={handleSave} className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${lastSaved ? 'bg-green-100 text-green-700' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>
                         <Save size={16} /> {lastSaved ? 'Saved!' : 'Save'}
                     </button>
@@ -140,10 +177,20 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
                     <form onSubmit={addTask} className="space-y-3">
                         <label className="text-[10px] font-bold uppercase text-slate-400">Quick Add</label>
                         <input type="text" placeholder="Name" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" value={newTaskName} onChange={e => setNewTaskName(e.target.value)} />
+
                         <div className="flex gap-2">
-                            <input type="number" min="1" placeholder="Days" className="w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" value={newTaskDuration} onChange={e => setNewTaskDuration(e.target.value)} />
-                            <input type="text" placeholder="Preds" className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm uppercase" value={newTaskPred} onChange={e => setNewTaskPred(e.target.value)} />
+                            <select className="w-1/3 px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold uppercase" value={newTaskType} onChange={e => setNewTaskType(e.target.value as any)}>
+                                <option value="task">Task</option>
+                                <option value="start">Start</option>
+                                <option value="end">End</option>
+                            </select>
+                            {newTaskType === 'task' && (
+                                <input type="number" min="1" placeholder="Days" className="w-1/3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" value={newTaskDuration} onChange={e => setNewTaskDuration(e.target.value)} />
+                            )}
                         </div>
+
+                        <input type="text" placeholder="Preds (e.g. A, B)" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm uppercase" value={newTaskPred} onChange={e => setNewTaskPred(e.target.value)} />
+
                         <button disabled={!newTaskName} type="submit" className="w-full py-2 bg-slate-900 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2"><Plus size={16} /> Add</button>
                     </form>
 
@@ -152,7 +199,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
                         {tasks.map(t => (
                             <div key={t.id} className="group flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-lg hover:border-blue-400 transition-colors cursor-pointer" onClick={() => setEditingTask(t)}>
                                 <div className="flex items-center gap-3 overflow-hidden">
-                                    <span className="w-6 h-6 flex items-center justify-center bg-slate-100 text-xs font-bold rounded">{t.id}</span>
+                                    <span className={`w-6 h-6 flex items-center justify-center text-xs font-bold rounded ${t.type === 'start' ? 'bg-emerald-100 text-emerald-700' : t.type === 'end' ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>{t.id}</span>
                                     <span className="text-sm font-medium truncate">{t.name}</span>
                                 </div>
                                 <Edit2 size={12} className="text-slate-300 group-hover:text-blue-500" />
@@ -165,7 +212,9 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
             {/* Canvas */}
             <div className="flex-1 relative bg-slate-50 mt-16 overflow-hidden" ref={canvasRef} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
                 <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`, backgroundSize: '24px 24px', transform: `translate(${pan.x % 24}px, ${pan.y % 24}px) scale(${zoom})` }} />
-                <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, transition: isDragging ? 'none' : 'transform 0.15s' }}>
+
+                {/* Export Container - We attach ref here to capture the content */}
+                <div ref={exportRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, transition: isDragging ? 'none' : 'transform 0.15s' }}>
                     {/* Lines */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
                         {processedData.map(node => node.predecessors.map(predId => {
