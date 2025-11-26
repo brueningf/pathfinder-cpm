@@ -6,6 +6,7 @@ import { calculateLayout } from '../utils/layoutLogic';
 import { Node } from './Node';
 import { Connection } from './Connection';
 import { EditTaskModal } from './EditTaskModal';
+import { GanttChart } from './GanttChart';
 import { toPng } from 'html-to-image';
 
 interface EditorProps {
@@ -30,6 +31,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, taskId: string | null } | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'diagram' | 'gantt'>('diagram'); // View mode state
 
     // Add Task Form State
     const [newTaskName, setNewTaskName] = useState('');
@@ -211,23 +213,58 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack }) => {
 
             {/* Canvas */}
             <div className="flex-1 relative bg-slate-50 mt-16 overflow-hidden" ref={canvasRef} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
-                <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`, backgroundSize: '24px 24px', transform: `translate(${pan.x % 24}px, ${pan.y % 24}px) scale(${zoom})` }} />
+                {/* Main Content Area */}
+                <div className="flex-1 overflow-auto bg-slate-50 relative">
+                    {viewMode === 'gantt' ? (
+                        <div className="p-8">
+                            <GanttChart project={{ ...project, data: processedData.length > 0 ? processedData : tasks }} />
+                        </div>
+                    ) : (
+                        <div className="min-w-[2000px] min-h-[2000px] relative" ref={exportRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', transition: isDragging ? 'none' : 'transform 0.15s' }}>
+                            {/* Grid background */}
+                            <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`, backgroundSize: '24px 24px', transform: `translate(${pan.x % 24}px, ${pan.y % 24}px)` }} />
 
-                {/* Export Container - We attach ref here to capture the content */}
-                <div ref={exportRef} style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: 'center center', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, transition: isDragging ? 'none' : 'transform 0.15s' }}>
-                    {/* Lines */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
-                        {processedData.map(node => node.predecessors.map(predId => {
-                            const startNode = processedData.find(n => n.id === predId);
-                            if (!startNode) return null;
-                            const linkIsCritical = node.isCritical && startNode.isCritical && (Math.abs(startNode.ef - node.es) < 0.001);
-                            return <Connection key={`${startNode.id}-${node.id}`} start={startNode as LayoutNode} end={node as LayoutNode} isCritical={linkIsCritical} />;
-                        }))}
-                    </svg>
-                    {/* Nodes */}
-                    {processedData.map(node => <Node key={node.id} data={node as LayoutNode} onContextMenu={handleContextMenu} onDoubleClick={(data) => setEditingTask(data)} />)}
+                            {/* Connections */}
+                            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 overflow-visible">
+                                <defs>
+                                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                        <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                                    </marker>
+                                    <marker id="arrowhead-critical" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                        <polygon points="0 0, 10 3.5, 0 7" fill="#f43f5e" />
+                                    </marker>
+                                </defs>
+                                {processedData.map(node => (
+                                    node.predecessors.map(predId => {
+                                        const predNode = processedData.find(n => n.id === predId);
+                                        if (predNode) {
+                                            const isCriticalConnection = node.isCritical && predNode.isCritical && (Math.abs(node.es - predNode.ef) < 0.001); // Simplified critical path check
+                                            return (
+                                                <Connection
+                                                    key={`${predId}-${node.id}`}
+                                                    start={{ x: predNode.x + 180, y: predNode.y + 40 }}
+                                                    end={{ x: node.x, y: node.y + 40 }}
+                                                    isCritical={isCriticalConnection}
+                                                />
+                                            );
+                                        }
+                                        return null;
+                                    })
+                                ))}
+                            </svg>
+
+                            {/* Nodes */}
+                            {processedData.map(node => (
+                                <Node
+                                    key={node.id}
+                                    data={node as LayoutNode}
+                                    onContextMenu={(e) => handleContextMenu(e, node.id)} // Reverted to original handler
+                                    onDoubleClick={() => setEditingTask(node as LayoutNode)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
-
                 {/* Floating Controls */}
                 <div className="absolute bottom-6 right-6 flex gap-2">
                     <button onClick={() => setZoom(Math.min(zoom + 0.1, 2))} className="p-3 bg-white shadow-lg rounded-full text-slate-600 hover:bg-slate-50"><ZoomIn size={20} /></button>

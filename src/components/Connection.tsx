@@ -1,19 +1,20 @@
 import React from 'react';
-import { LayoutNode } from '../types';
+
+interface Point {
+    x: number;
+    y: number;
+}
 
 interface ConnectionProps {
-    start: LayoutNode;
-    end: LayoutNode;
+    start: Point;
+    end: Point;
     isCritical: boolean;
 }
 
-const NODE_DIAMETER = 180;
-const RADIUS = NODE_DIAMETER / 2;
-
 export const Connection: React.FC<ConnectionProps> = ({ start, end, isCritical }) => {
-    const startX = start.x + RADIUS;
+    const startX = start.x;
     const startY = start.y;
-    const endX = end.x - RADIUS;
+    const endX = end.x;
     const endY = end.y;
 
     const midX = (startX + endX) / 2;

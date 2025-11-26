@@ -3,13 +3,23 @@ export interface Task {
     name: string;
     duration: number;
     predecessors: string[];
-    manualSlack?: number | null | string;
-    manualCritical?: 'auto' | 'true' | 'false' | string;
-    manualES?: number | null | string;
-    manualEF?: number | null | string;
-    manualLS?: number | null | string;
-    manualLF?: number | null | string;
     type?: 'task' | 'start' | 'end';
+    resources?: string[]; // e.g. "Alice", "Bob"
+    cost?: number;
+    // Computed values (optional, populated after calculation)
+    es?: number;
+    ef?: number;
+    ls?: number;
+    lf?: number;
+    slack?: number;
+    isCritical?: boolean;
+    // Manual overrides
+    manualES?: number | string;
+    manualEF?: number | string;
+    manualLS?: number | string;
+    manualLF?: number | string;
+    manualSlack?: number | string;
+    manualCritical?: 'auto' | 'true' | 'false';
 }
 
 export interface ProcessedTask extends Task {
@@ -23,22 +33,33 @@ export interface ProcessedTask extends Task {
     y?: number;
 }
 
+export interface Requirement {
+    id: string;
+    title: string;
+    description: string; // User story format preferred
+    priority: 'Must' | 'Should' | 'Could' | 'Won\'t';
+    type: 'Functional' | 'Non-Functional';
+}
+
 export interface Project {
     id: string;
     name: string;
     createdAt: string;
     updatedAt: string;
     data: Task[];
+    requirements?: Requirement[];
     taskCount: number;
 }
 
 export interface CPMResult {
-    error: string | null;
     processedTasks: ProcessedTask[];
     projectDuration: number;
+    criticalPath: string[];
+    error: string | null;
 }
 
 export interface LayoutNode extends ProcessedTask {
     x: number;
     y: number;
+    level: number;
 }

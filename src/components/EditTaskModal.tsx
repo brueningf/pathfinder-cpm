@@ -17,12 +17,16 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onDe
     const [preds, setPreds] = useState(task.predecessors.join(', '));
 
     // Overrides
-    const [manualSlack, setManualSlack] = useState<string | number>(task.manualSlack ?? '');
-    const [manualCritical, setManualCritical] = useState(task.manualCritical ?? 'auto');
-    const [manualES, setManualES] = useState<string | number>(task.manualES ?? '');
-    const [manualEF, setManualEF] = useState<string | number>(task.manualEF ?? '');
-    const [manualLS, setManualLS] = useState<string | number>(task.manualLS ?? '');
-    const [manualLF, setManualLF] = useState<string | number>(task.manualLF ?? '');
+    const [manualSlack, setManualSlack] = useState<string>(task.manualSlack?.toString() || '');
+    const [manualCritical, setManualCritical] = useState<string>(task.manualCritical || 'auto');
+    const [manualES, setManualES] = useState<string>(task.manualES?.toString() || '');
+    const [manualEF, setManualEF] = useState<string>(task.manualEF?.toString() || '');
+    const [manualLS, setManualLS] = useState<string>(task.manualLS?.toString() || '');
+    const [manualLF, setManualLF] = useState<string>(task.manualLF?.toString() || '');
+
+    // New fields
+    const [resources, setResources] = useState<string>(task.resources?.join(', ') || '');
+    const [cost, setCost] = useState<string>(task.cost?.toString() || '');
 
     const [error, setError] = useState<string | null>(null);
 
@@ -38,14 +42,16 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onDe
 
         onSave(task.id, trimmedId, { // Pass original ID and new ID
             name,
-            duration: Number(duration),
+            duration: parseInt(duration.toString()) || 0, // Ensure duration is parsed as int
             predecessors: parsedPreds,
-            manualSlack: manualSlack === '' ? null : manualSlack,
-            manualCritical,
-            manualES: manualES === '' ? null : manualES,
-            manualEF: manualEF === '' ? null : manualEF,
-            manualLS: manualLS === '' ? null : manualLS,
-            manualLF: manualLF === '' ? null : manualLF,
+            resources: resources.split(',').map(s => s.trim()).filter(s => s),
+            cost: parseFloat(cost) || 0,
+            manualSlack: manualSlack === '' ? undefined : parseFloat(manualSlack as string),
+            manualCritical: manualCritical as 'auto' | 'true' | 'false',
+            manualES: manualES === '' ? undefined : parseFloat(manualES as string),
+            manualEF: manualEF === '' ? undefined : parseFloat(manualEF as string),
+            manualLS: manualLS === '' ? undefined : parseFloat(manualLS as string),
+            manualLF: manualLF === '' ? undefined : parseFloat(manualLF as string)
         });
         onClose();
     };
