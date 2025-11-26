@@ -9,6 +9,7 @@ export interface Task {
     manualEF?: number | null | string;
     manualLS?: number | null | string;
     manualLF?: number | null | string;
+    type?: 'task' | 'start' | 'end';
 }
 
 export interface ProcessedTask extends Task {
