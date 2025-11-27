@@ -39,6 +39,7 @@ export interface Requirement {
     description: string; // User story format preferred
     priority: 'Must' | 'Should' | 'Could' | 'Won\'t';
     type: 'Functional' | 'Non-Functional';
+    status: 'Draft' | 'Pending' | 'Approved' | 'Rejected';
 }
 
 export interface Project {

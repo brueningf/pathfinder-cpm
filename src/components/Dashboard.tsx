@@ -12,12 +12,13 @@ interface DashboardProps {
     onExportData: () => void;
     onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onOpenRequirements: (id: string) => void;
+    onLoadExample?: () => void;
     theme: 'dark' | 'light';
     toggleTheme: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
-    onOpenProject, onDeleteProject, projects, onCreateProject, onExportData, onImportData, onOpenRequirements, theme, toggleTheme
+    onOpenProject, onDeleteProject, projects, onCreateProject, onExportData, onImportData, onOpenRequirements, onLoadExample, theme, toggleTheme
 }) => {
     const [newProjectName, setNewProjectName] = useState('');
 
@@ -135,6 +136,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Footer */}
             <div className={`mt-16 pt-8 pb-8 border-t text-center ${isDark ? 'border-slate-800 text-slate-600' : 'border-stone-200 text-stone-400'}`}>
+                {onLoadExample && (
+                    <button onClick={onLoadExample} className={`text-xs mb-4 hover:underline ${isDark ? 'text-blue-500 hover:text-blue-400' : 'text-blue-600 hover:text-blue-700'}`}>
+                        Need inspiration? Load Example Project
+                    </button>
+                )}
                 <p className="text-xs">
                     Pathfinder • Made by <a href="https://fredesk.com" target="_blank" rel="noopener noreferrer" className={`hover:underline ${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-stone-500 hover:text-stone-600'}`}>Fredesk</a>
                 </p>

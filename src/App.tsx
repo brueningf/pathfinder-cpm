@@ -10,19 +10,29 @@ const NEW_PROJECT_TEMPLATE: Task[] = [
 ];
 
 const EXAMPLE_PROJECT: Project = {
-    id: 'example-1',
-    name: 'Website Launch 🚀',
+    id: 'example-mobile-app',
+    name: 'Mobile App Launch 🚀',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    taskCount: 7,
+    taskCount: 12,
     data: [
-        { id: 'A', name: 'Planning', duration: 2, predecessors: [], type: 'start' },
-        { id: 'B', name: 'Design', duration: 5, predecessors: ['A'], type: 'task' },
-        { id: 'C', name: 'Frontend Dev', duration: 8, predecessors: ['B'], type: 'task' },
-        { id: 'D', name: 'Backend Dev', duration: 10, predecessors: ['B'], type: 'task' },
-        { id: 'E', name: 'Integration', duration: 3, predecessors: ['C', 'D'], type: 'task' },
-        { id: 'F', name: 'Testing', duration: 4, predecessors: ['E'], type: 'task' },
-        { id: 'G', name: 'Deploy', duration: 1, predecessors: ['F'], type: 'end' },
+        { id: 'A', name: 'Market Research', duration: 5, predecessors: [], type: 'start' },
+        { id: 'B', name: 'Define Requirements', duration: 3, predecessors: ['A'], type: 'task' },
+        { id: 'C', name: 'UI/UX Design', duration: 8, predecessors: ['B'], type: 'task' },
+        { id: 'D', name: 'Tech Stack Selection', duration: 2, predecessors: ['B'], type: 'task' },
+        { id: 'E', name: 'Frontend Dev', duration: 10, predecessors: ['C', 'D'], type: 'task' },
+        { id: 'F', name: 'Backend Dev', duration: 12, predecessors: ['D'], type: 'task' },
+        { id: 'G', name: 'API Integration', duration: 5, predecessors: ['E', 'F'], type: 'task' },
+        { id: 'H', name: 'Testing', duration: 5, predecessors: ['G'], type: 'task' },
+        { id: 'I', name: 'Bug Fixes', duration: 3, predecessors: ['H'], type: 'task' },
+        { id: 'J', name: 'App Store Submission', duration: 2, predecessors: ['I'], type: 'task' },
+        { id: 'K', name: 'Marketing Campaign', duration: 7, predecessors: ['C'], type: 'task' },
+        { id: 'L', name: 'Launch', duration: 0, predecessors: ['J', 'K'], type: 'end' },
+    ],
+    requirements: [
+        { id: 'R1', title: 'User Authentication', description: 'Secure login via Email and OAuth (Google, Apple).', priority: 'Must', type: 'Functional', status: 'Approved' },
+        { id: 'R2', title: 'Push Notifications', description: 'Real-time alerts for user engagement.', priority: 'Should', type: 'Functional', status: 'Pending' },
+        { id: 'R3', title: 'Offline Mode', description: 'App must function without internet connection for core features.', priority: 'Must', type: 'Non-Functional', status: 'Draft' },
     ]
 };
 
@@ -157,6 +167,13 @@ export default function App() {
         );
     }
 
+    const handleLoadExample = () => {
+        if (window.confirm("Load example project? This will add 'Mobile App Launch' to your projects.")) {
+            const exampleWithNewId = { ...EXAMPLE_PROJECT, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+            setProjects([exampleWithNewId, ...projects]);
+        }
+    };
+
     return <Dashboard
         projects={projects}
         onCreateProject={handleCreateProject}
@@ -165,6 +182,7 @@ export default function App() {
         onDeleteProject={handleDeleteProject}
         onExportData={handleExportData}
         onImportData={handleImportData}
+        onLoadExample={handleLoadExample}
         theme={theme}
         toggleTheme={toggleTheme}
     />;
