@@ -38,6 +38,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
     const [draggedNode, setDraggedNode] = useState<string | null>(null);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [lastSaved, setLastSaved] = useState(false);
+    const [lastTouch, setLastTouch] = useState<{ x: number, y: number } | null>(null);
 
     const canvasRef = useRef<HTMLDivElement>(null);
     const exportRef = useRef<HTMLDivElement>(null);
@@ -151,13 +152,10 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
 
     // Canvas Interaction
     const handleWheel = (e: React.WheelEvent) => {
-        if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            setZoom(z => Math.min(Math.max(z * delta, 0.2), 3));
-        } else {
-            setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
-        }
+        e.preventDefault();
+        // Zoom by default
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom(z => Math.min(Math.max(z * delta, 0.2), 3));
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -182,6 +180,25 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
         e.stopPropagation();
         // Node dragging logic could be implemented here if we want manual layout
         // For now, we just prevent canvas panning
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length === 1) {
+            setLastTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (e.touches.length === 1 && lastTouch) {
+            const dx = e.touches[0].clientX - lastTouch.x;
+            const dy = e.touches[0].clientY - lastTouch.y;
+            setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+            setLastTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+        }
+    };
+
+    const handleTouchEnd = () => {
+        setLastTouch(null);
     };
 
     const handleAddClick = () => {
@@ -329,9 +346,9 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                 </div>
 
                 {/* Canvas */}
-                <div className={`flex-1 relative overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`} ref={canvasRef} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
+                <div className={`flex-1 relative overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`} ref={canvasRef} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
                     {/* Main Content Area */}
-                    <div className={`flex-1 overflow-auto relative ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`}>
+                    <div className={`flex-1 overflow-hidden relative ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`}>
                         {viewMode === 'gantt' ? (
                             <div className="p-8">
                                 <GanttChart project={{ ...project, data: processedData.length > 0 ? processedData : tasks }} />
