@@ -42,7 +42,8 @@ export const calculateCPM = (tasks: Task[]): CPMResult => {
     }
 
     if (sortedOrder.length !== tasks.length) {
-        return { error: "Cycle detected", processedTasks: [], projectDuration: 0 };
+        if (tasks.length === 0) return { processedTasks: [], projectDuration: 0, criticalPath: [], error: "No tasks provided" };
+        return { error: "Cycle detected", processedTasks: [], projectDuration: 0, criticalPath: [] };
     }
 
     // --- 1. Standard Forward Pass ---

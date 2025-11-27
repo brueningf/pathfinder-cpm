@@ -138,13 +138,13 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onSave, onDe
                         <button
                             type="button"
                             onClick={() => { if (window.confirm('Delete this task?')) onDelete(task.id); }}
-                            className="px-4 py-2 bg-rose-50 text-rose-600 font-bold rounded-lg hover:bg-rose-100 flex items-center gap-2 transition-colors"
+                            className="btn bg-rose-50 text-rose-600 hover:bg-rose-100"
                         >
                             <Trash2 size={16} /> <span className="text-xs uppercase">Delete</span>
                         </button>
                         <div className="flex-1 flex gap-2">
-                            <button type="button" onClick={onClose} className="flex-1 py-2 text-slate-600 font-medium hover:bg-slate-50 rounded-lg">Cancel</button>
-                            <button type="submit" className="flex-[2] py-2 bg-slate-900 text-white font-medium hover:bg-slate-800 rounded-lg">Save Changes</button>
+                            <button type="button" onClick={onClose} className="btn flex-1 text-slate-600 hover:bg-slate-50">Cancel</button>
+                            <button type="submit" className="btn flex-[2] bg-slate-900 text-white hover:bg-slate-800">Save Changes</button>
                         </div>
                     </div>
                 </form>
