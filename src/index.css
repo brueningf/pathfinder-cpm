@@ -1,1 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Orbitron:wght@400;700;900&display=swap');
 @import "tailwindcss";
+
+@layer components {
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold transition-all cursor-pointer border-none;
+    }
+}
