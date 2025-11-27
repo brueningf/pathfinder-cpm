@@ -65,7 +65,7 @@ export const Requirements: React.FC<RequirementsProps & { theme: 'dark' | 'light
                 content={helpContent}
             />
 
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
                     <h2 className={`text-2xl font-bold flex items-center gap-2 ${isDark ? 'text-slate-200' : 'text-stone-800'}`}>
                         Requirements Engineering
@@ -96,7 +96,7 @@ export const Requirements: React.FC<RequirementsProps & { theme: 'dark' | 'light
                             </label>
                             <textarea className={`w-full px-3 py-2 border rounded-lg h-24 ${isDark ? 'bg-slate-950 border-slate-800 text-slate-200 placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 text-stone-800'}`} placeholder="As a [role], I want [feature] so that [benefit]..." value={newDesc} onChange={e => setNewDesc(e.target.value)} />
                         </div>
-                        <div className="flex gap-4">
+                        <div className="flex flex-col md:flex-row gap-4">
                             <div className="flex-1">
                                 <label className={`block text-xs font-bold uppercase mb-1 flex items-center gap-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                                     Priority (MoSCoW)

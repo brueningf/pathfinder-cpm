@@ -83,11 +83,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 {/* Create New */}
                 <div className={`p-6 rounded-2xl shadow-lg border mb-8 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'}`}>
                     <h2 className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDark ? 'text-slate-500' : 'text-stone-400'}`}>Create New Diagram</h2>
-                    <form onSubmit={handleCreate} className="flex gap-4">
+                    <form onSubmit={handleCreate} className="flex flex-col md:flex-row gap-4">
                         <input
                             type="text"
                             placeholder="Project Name (e.g., Office Relocation)"
-                            className={`flex-1 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 ${isDark ? 'bg-slate-950 border border-slate-800 text-white placeholder-slate-600' : 'bg-stone-50 border border-stone-200 text-stone-800 placeholder-stone-400'}`}
+                            className={`flex-1 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 ${isDark ? 'bg-slate-950 border border-slate-800 text-white placeholder-slate-600' : 'bg-stone-50 border-stone-200 text-stone-800 placeholder-stone-400'}`}
                             value={newProjectName}
                             onChange={e => setNewProjectName(e.target.value)}
                         />
@@ -117,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-stone-400'}`}>{p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : 'Just now'} • {p.taskCount} tasks</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 w-full">
+                            <div className="flex items-stretch gap-2 w-full">
                                 <button onClick={() => onOpenRequirements(p.id)} className={`btn flex-1 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700' : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200'}`}>
                                     Requirements
                                 </button>

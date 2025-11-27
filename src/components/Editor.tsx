@@ -246,9 +246,9 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
             {editingTask && <EditTaskModal task={editingTask} onSave={updateTask} onDelete={removeTask} onClose={() => setEditingTask(null)} allTaskIds={tasks.map(t => t.id)} />}
 
             {/* Main Content Wrapper */}
-            <div className="flex flex-1 overflow-hidden relative">
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
                 {/* Sidebar (Adapted) */}
-                <div className={`fixed inset-y-0 left-0 z-40 w-[300px] border-r shadow-xl pt-20 transform transition-transform duration-300 md:relative md:translate-x-0 md:pt-0 md:shadow-none md:flex md:flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'}`}>
+                <div className={`fixed inset-y-0 left-0 z-40 w-[300px] max-w-[85vw] border-r shadow-xl pt-20 transform transition-transform duration-300 md:relative md:translate-x-0 md:pt-0 md:shadow-none md:flex md:flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'}`}>
                     <div className={`p-4 border-b ${isDark ? 'border-slate-800 bg-slate-900' : 'border-stone-100 bg-stone-50/50'}`}>
                         <div className="grid grid-cols-2 gap-2 text-center">
                             <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-stone-200'}`}>
