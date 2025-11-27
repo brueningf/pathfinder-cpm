@@ -216,8 +216,8 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h1 className={`font-bold text-lg ${isDark ? 'text-slate-200' : 'text-stone-800'}`}>{project.name}</h1>
-                        <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-slate-500' : 'text-stone-500'}`}>
+                        <h1 className={`font-bold text-lg truncate max-w-[150px] md:max-w-none ${isDark ? 'text-slate-200' : 'text-stone-800'}`}>{project.name}</h1>
+                        <div className={`hidden md:flex items-center gap-2 text-xs ${isDark ? 'text-slate-500' : 'text-stone-500'}`}>
                             <span className={`px-2 py-0.5 rounded font-medium ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`}>{tasks.length} Tasks</span>
                             <span>•</span>
                             <span className={`px-2 py-0.5 rounded font-medium ${isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600'}`}>Duration: {projectDuration} days</span>
@@ -248,7 +248,10 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
             {/* Main Content Wrapper */}
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
                 {/* Sidebar (Adapted) */}
-                <div className={`fixed inset-y-0 left-0 z-40 w-[300px] max-w-[85vw] border-r shadow-xl pt-20 transform transition-transform duration-300 md:relative md:translate-x-0 md:pt-0 md:shadow-none md:flex md:flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'}`}>
+                <div className={`fixed inset-x-0 bottom-0 z-50 h-[60vh] border-t shadow-2xl rounded-t-2xl transform transition-transform duration-300 md:relative md:inset-auto md:w-[300px] md:h-auto md:border-r md:border-t-0 md:shadow-none md:rounded-none md:translate-y-0 md:flex md:flex-col ${sidebarOpen ? 'translate-y-0' : 'translate-y-full'} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'}`}>
+                    {/* Mobile Drag Handle */}
+                    <div className="w-12 h-1.5 bg-slate-300/50 rounded-full mx-auto mt-3 mb-1 md:hidden" />
+
                     <div className={`p-4 border-b ${isDark ? 'border-slate-800 bg-slate-900' : 'border-stone-100 bg-stone-50/50'}`}>
                         <div className="grid grid-cols-2 gap-2 text-center">
                             <div className={`p-2 rounded-lg border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-stone-200'}`}>

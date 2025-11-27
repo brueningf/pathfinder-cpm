@@ -38,20 +38,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {isDark ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
                 <a href="https://ko-fi.com/brueningf" target="_blank" rel="noopener noreferrer" className="btn bg-[#FF5E5B] text-white hover:bg-[#ff4542] border-none shadow-lg shadow-red-500/20 text-sm">
-                    <Coffee size={16} /> Buy me a coffee
+                    <Coffee size={16} /> <span className="hidden md:inline">Buy me a coffee</span>
                 </a>
             </div>
 
             {/* Hero Section */}
-            <div className={`relative h-[500px] overflow-hidden flex flex-col items-center pt-20 mb-8 ${isDark ? 'bg-slate-950' : 'bg-stone-100'}`}>
+            <div className={`relative h-[350px] md:h-[500px] overflow-hidden flex flex-col items-center pt-12 md:pt-20 mb-8 ${isDark ? 'bg-slate-950' : 'bg-stone-100'}`}>
                 <AbstractHero theme={theme} />
                 <div className="relative z-10 text-center pointer-events-none select-none">
-                    <h1 className={`text-5xl font-black mb-4 tracking-wider ${isDark ? 'text-white' : 'text-stone-800'}`} style={{ fontFamily: '"Orbitron", sans-serif' }}>PATHFINDER</h1>
-                    <p className={`text-sm tracking-[0.3em] uppercase ${isDark ? 'text-slate-400' : 'text-stone-500'}`}>Project Administration & CPM Analysis</p>
+                    <h1 className={`text-3xl md:text-5xl font-black mb-4 tracking-wider ${isDark ? 'text-white' : 'text-stone-800'}`} style={{ fontFamily: '"Orbitron", sans-serif' }}>PATHFINDER</h1>
+                    <p className={`text-xs md:text-sm tracking-[0.3em] uppercase ${isDark ? 'text-slate-400' : 'text-stone-500'}`}>Project Administration & CPM Analysis</p>
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-8 pb-12 relative z-20 -mt-32">
+            <div className="max-w-4xl mx-auto px-8 pb-12 relative z-20 -mt-20 md:-mt-32">
 
                 {/* Info Section with Fading Border Effect */}
                 <div className={`relative p-[1px] rounded-xl mb-8 overflow-hidden`}>
