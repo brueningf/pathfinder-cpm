@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import App from '../App';
+import App from './App';
 
 vi.mock('html-to-image', () => ({
     toPng: vi.fn(),
@@ -28,12 +28,18 @@ vi.mock('lucide-react', () => ({
     FileText: () => <div />,
     Download: () => <div />,
     Image: () => <div />,
+    Sun: () => <div />,
+    Moon: () => <div />,
+    List: () => <div />,
+    Coffee: () => <div />,
+    ArrowLeft: () => <div />,
+    Upload: () => <div />,
 }));
 
 describe('App', () => {
     it('renders the dashboard by default', () => {
         render(<App />);
-        expect(screen.getByText(/Pathfinder/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /PATHFINDER/i })).toBeInTheDocument();
         expect(screen.getByText(/Project Administration & CPM Analysis/i)).toBeInTheDocument();
         expect(screen.getByText(/Create New Diagram/i)).toBeInTheDocument();
     });
