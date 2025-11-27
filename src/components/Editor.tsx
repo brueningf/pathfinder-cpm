@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ArrowLeft, Activity, Save, Menu, Plus, Edit2, ZoomIn, ZoomOut, Move, Download, Image as ImageIcon, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Activity, Save, Menu, Plus, Edit2, ZoomIn, ZoomOut, Move, Download, Image as ImageIcon, HelpCircle, List } from 'lucide-react';
 import { Project, Task, LayoutNode } from '../types';
 import { calculateCPM } from '../utils/cpmLogic';
 import { calculateLayout } from '../utils/layoutLogic';
@@ -41,6 +41,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
 
     const canvasRef = useRef<HTMLDivElement>(null);
     const exportRef = useRef<HTMLDivElement>(null);
+    const quickAddInputRef = useRef<HTMLInputElement>(null);
 
     const isDark = theme === 'dark';
 
@@ -183,6 +184,13 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
         // For now, we just prevent canvas panning
     };
 
+    const handleAddClick = () => {
+        setSidebarOpen(true);
+        setTimeout(() => {
+            quickAddInputRef.current?.focus();
+        }, 300); // Wait for transition
+    };
+
     const handleContextMenu = (e: React.MouseEvent, taskId: string) => {
         e.preventDefault();
         const task = tasks.find(t => t.id === taskId);
@@ -240,7 +248,8 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                     <button onClick={handleSave} className={`btn ${lastSaved ? 'bg-green-100 text-green-700' : (isDark ? 'bg-slate-100 text-slate-900 hover:bg-white' : 'bg-stone-800 text-white hover:bg-stone-900')}`}>
                         <Save size={16} /> {lastSaved ? 'Saved!' : 'Save'}
                     </button>
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg md:hidden ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-stone-100'}`}><Menu size={24} /></button>
+                    <button onClick={handleAddClick} className={`p-2 rounded-lg md:hidden ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-stone-100'}`}><Plus size={24} /></button>
+                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg md:hidden ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-stone-100'}`}><List size={24} /></button>
                 </div>
             </div>
 
@@ -286,7 +295,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                     <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6">
                         <form onSubmit={addTask} className="space-y-3">
                             <label className={`text-[10px] font-bold uppercase ${isDark ? 'text-slate-500' : 'text-stone-400'}`}>Quick Add</label>
-                            <input type="text" placeholder="Name" className={`w-full px-3 py-2 border rounded-lg text-sm ${isDark ? 'bg-slate-950 border-slate-800 text-slate-200 placeholder-slate-600' : 'bg-stone-50 border-stone-200 text-stone-800'}`} value={newTaskName} onChange={e => setNewTaskName(e.target.value)} />
+                            <input ref={quickAddInputRef} type="text" placeholder="Name" className={`w-full px-3 py-2 border rounded-lg text-sm ${isDark ? 'bg-slate-950 border-slate-800 text-slate-200 placeholder-slate-600' : 'bg-stone-50 border-stone-200 text-stone-800'}`} value={newTaskName} onChange={e => setNewTaskName(e.target.value)} />
 
                             <div className="flex gap-2">
                                 <select className={`w-1/3 px-2 py-2 border rounded-lg text-xs font-bold uppercase ${isDark ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-stone-50 border-stone-200'}`} value={newTaskType} onChange={e => setNewTaskType(e.target.value as any)}>
