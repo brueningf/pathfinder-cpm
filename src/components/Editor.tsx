@@ -227,7 +227,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                         <HelpCircle size={20} />
                     </button>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2">
                     <div className={`flex rounded-lg p-1 mr-2 ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`}>
                         <button onClick={() => setViewMode('diagram')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'diagram' ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-stone-800 shadow') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-stone-500 hover:text-stone-700')}`}>Diagram</button>
                         <button onClick={() => setViewMode('gantt')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'gantt' ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-stone-800 shadow') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-stone-500 hover:text-stone-700')}`}>Gantt</button>
@@ -251,6 +251,22 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                 <div className={`fixed inset-x-0 bottom-0 z-50 h-[60vh] border-t shadow-2xl rounded-t-2xl transform transition-transform duration-300 md:relative md:inset-auto md:w-[300px] md:h-auto md:border-r md:border-t-0 md:shadow-none md:rounded-none md:translate-y-0 md:flex md:flex-col ${sidebarOpen ? 'translate-y-0' : 'translate-y-full'} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-stone-200'}`}>
                     {/* Mobile Drag Handle */}
                     <div className="w-12 h-1.5 bg-slate-300/50 rounded-full mx-auto mt-3 mb-1 md:hidden" />
+
+                    {/* Mobile Controls */}
+                    <div className={`p-4 border-b md:hidden space-y-3 ${isDark ? 'border-slate-800 bg-slate-900' : 'border-stone-100 bg-stone-50/50'}`}>
+                        <div className={`flex rounded-lg p-1 ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`}>
+                            <button onClick={() => setViewMode('diagram')} className={`flex-1 px-3 py-2 rounded-md text-xs font-bold transition-all ${viewMode === 'diagram' ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-stone-800 shadow') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-stone-500 hover:text-stone-700')}`}>Diagram</button>
+                            <button onClick={() => setViewMode('gantt')} className={`flex-1 px-3 py-2 rounded-md text-xs font-bold transition-all ${viewMode === 'gantt' ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-stone-800 shadow') : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-stone-500 hover:text-stone-700')}`}>Gantt</button>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleExport} className={`btn flex-1 border justify-center ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'}`}>
+                                <ImageIcon size={16} /> Export
+                            </button>
+                            <button onClick={handleSave} className={`btn flex-1 justify-center ${lastSaved ? 'bg-green-100 text-green-700' : (isDark ? 'bg-slate-100 text-slate-900 hover:bg-white' : 'bg-stone-800 text-white hover:bg-stone-900')}`}>
+                                <Save size={16} /> {lastSaved ? 'Saved!' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
 
                     <div className={`p-4 border-b ${isDark ? 'border-slate-800 bg-slate-900' : 'border-stone-100 bg-stone-50/50'}`}>
                         <div className="grid grid-cols-2 gap-2 text-center">
