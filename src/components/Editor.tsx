@@ -217,10 +217,12 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                     </button>
                     <div>
                         <h1 className={`font-bold text-lg truncate max-w-[150px] md:max-w-none ${isDark ? 'text-slate-200' : 'text-stone-800'}`}>{project.name}</h1>
-                        <div className={`hidden md:flex items-center gap-2 text-xs ${isDark ? 'text-slate-500' : 'text-stone-500'}`}>
+                        <div className={`flex items-center gap-2 text-[10px] md:text-xs ${isDark ? 'text-slate-500' : 'text-stone-500'}`}>
                             <span className={`px-2 py-0.5 rounded font-medium ${isDark ? 'bg-slate-800' : 'bg-stone-100'}`}>{tasks.length} Tasks</span>
-                            <span>•</span>
-                            <span className={`px-2 py-0.5 rounded font-medium ${isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600'}`}>Duration: {projectDuration} days</span>
+                            <span className="hidden md:inline">•</span>
+                            <span className={`px-2 py-0.5 rounded font-medium ${isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600'}`}>
+                                <span className="md:hidden">Dur: </span><span className="hidden md:inline">Duration: </span>{projectDuration}<span className="hidden md:inline"> days</span><span className="md:hidden">d</span>
+                            </span>
                         </div>
                     </div>
                     <button onClick={() => setHelpOpen(true)} className={`p-2 rounded-full transition-colors ml-2 ${isDark ? 'text-slate-500 hover:text-blue-400 hover:bg-blue-500/10' : 'text-stone-400 hover:text-blue-500 hover:bg-blue-50'}`}>

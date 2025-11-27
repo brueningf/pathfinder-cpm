@@ -51,7 +51,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-8 pb-12 relative z-20 -mt-20 md:-mt-32">
+            <div className="max-w-4xl mx-auto px-4 md:px-8 pb-12 relative z-20 -mt-20 md:-mt-32">
 
                 {/* Info Section with Fading Border Effect */}
                 <div className={`relative p-[1px] rounded-xl mb-8 overflow-hidden`}>
@@ -134,7 +134,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Footer */}
-            <div className={`mt-16 pt-8 border-t text-center ${isDark ? 'border-slate-800 text-slate-600' : 'border-stone-200 text-stone-400'}`}>
+            <div className={`mt-16 pt-8 pb-8 border-t text-center ${isDark ? 'border-slate-800 text-slate-600' : 'border-stone-200 text-stone-400'}`}>
                 <p className="text-xs">
                     Pathfinder • Made by <a href="https://fredesk.com" target="_blank" rel="noopener noreferrer" className={`hover:underline ${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-stone-500 hover:text-stone-600'}`}>Fredesk</a>
                 </p>
