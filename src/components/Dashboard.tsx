@@ -43,7 +43,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Hero Section */}
-            <div className={`relative h-[350px] md:h-[500px] overflow-hidden flex flex-col items-center pt-12 md:pt-20 mb-8 ${isDark ? 'bg-slate-950' : 'bg-stone-100'}`}>
+            <div className={`relative h-[350px] md:h-[500px] overflow-hidden flex flex-col items-center pt-28 md:pt-20 mb-8 ${isDark ? 'bg-slate-950' : 'bg-stone-100'}`}>
                 <AbstractHero theme={theme} />
                 <div className="relative z-10 text-center pointer-events-none select-none">
                     <h1 className={`text-3xl md:text-5xl font-black mb-4 tracking-wider ${isDark ? 'text-white' : 'text-stone-800'}`} style={{ fontFamily: '"Orbitron", sans-serif' }}>PATHFINDER</h1>
