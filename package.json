@@ -8,7 +8,8 @@
         "build": "vite build",
         "lint": "eslint .",
         "preview": "vite preview",
-        "test": "vitest"
+        "test": "vitest",
+        "deploy": "npm run build && wrangler pages deploy dist"
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.1.17",
@@ -33,6 +34,7 @@
         "postcss": "^8.5.6",
         "tailwindcss": "^4.1.17",
         "vite": "^7.2.4",
-        "vitest": "^3.2.4"
+        "vitest": "^3.2.4",
+        "wrangler": "^4.47.0"
     }
 }
