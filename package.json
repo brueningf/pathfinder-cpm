@@ -9,7 +9,7 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "test": "vitest",
-        "deploy": "npm run build && wrangler pages deploy dist"
+        "deploy": "wrangler deploy"
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.1.17",
