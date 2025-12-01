@@ -1,4 +1,6 @@
 # Pathfinder
+
+[pathfinder.fredesk.com](https://pathfinder.fredesk.com)
 Pathfinder was born out of a desire to do less and achieve more. I kept seing in my software engineering textbook the work computer-aided, computer assisted software engineering tools. Abstraction of analysis, design, and computer program design into automated tools.
 These tools were supposed to help software engineers be more productive by automating some of the tedious tasks involved in software development. However, I'm too lazy to go looking for tools that may, or may not, help me.
 The nonlinear fashion of requirements gathering and analysis, design, coding, testing, and maintenance makes it difficult. Pathfinder is not really defined yet, but the idea is to have a tool that helps me be more productive by automating some of the tedious tasks involved in software development.

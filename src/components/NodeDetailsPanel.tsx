@@ -1,6 +1,6 @@
 import React from 'react';
 import { LayoutNode } from '../types';
-import { X, Edit2, Trash2, AlertTriangle, Clock, Calendar, Activity } from 'lucide-react';
+import { X, AlertTriangle, Clock, Calendar, Activity } from 'lucide-react';
 
 interface NodeDetailsPanelProps {
     node: LayoutNode;
@@ -82,21 +82,7 @@ export const NodeDetailsPanel: React.FC<NodeDetailsPanelProps> = ({ node, onEdit
                 </div>
             </div>
 
-            {/* Actions Footer */}
-            <div className={`p-3 border-t flex gap-2 ${isDark ? 'border-slate-800 bg-slate-950/30' : 'border-stone-100 bg-stone-50/50'}`}>
-                <button
-                    onClick={onEdit}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' : 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-700'}`}
-                >
-                    <Edit2 size={14} /> Edit Task
-                </button>
-                <button
-                    onClick={onDelete}
-                    className={`flex items-center justify-center px-3 rounded-lg text-xs font-bold transition-all ${isDark ? 'bg-red-900/20 hover:bg-red-900/30 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-600'}`}
-                >
-                    <Trash2 size={14} />
-                </button>
-            </div>
+
         </div>
     );
 };

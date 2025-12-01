@@ -379,7 +379,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
     };
 
     return (
-        <div className={`h-screen flex flex-col overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`}>
+        <div className={`h-screen flex flex-col overflow-hidden select-none ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`}>
             <HelpModal
                 isOpen={helpOpen}
                 onClose={() => setHelpOpen(false)}
