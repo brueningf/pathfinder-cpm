@@ -3,13 +3,15 @@ import { LayoutNode } from '../types';
 
 interface NodeProps {
     data: LayoutNode;
+    isSelected?: boolean;
+    onClick?: (e: React.MouseEvent) => void;
     onContextMenu: (e: React.MouseEvent, taskId: string) => void;
     onDoubleClick: (task: LayoutNode) => void;
 }
 
 const NODE_DIAMETER = 180;
 
-export const Node: React.FC<NodeProps & { onMouseDown?: (e: React.MouseEvent) => void, theme: 'dark' | 'light' }> = ({ data, onContextMenu, onDoubleClick, onMouseDown, theme }) => {
+export const Node: React.FC<NodeProps & { onMouseDown?: (e: React.MouseEvent) => void, theme: 'dark' | 'light' }> = ({ data, isSelected, onClick, onContextMenu, onDoubleClick, onMouseDown, theme }) => {
     const isCritical = data.isCritical;
     const isStart = data.type === 'start';
     const isEnd = data.type === 'end';
@@ -27,20 +29,31 @@ export const Node: React.FC<NodeProps & { onMouseDown?: (e: React.MouseEvent) =>
 
     let colorClasses = isCritical
         ? `border-[3px] border-red-500 ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'}` // Removed shadow
-        : `border-2 ${isDark ? 'bg-slate-900 border-slate-600 text-slate-200' : 'bg-white border-slate-900 text-slate-800'}`; // Changed from red to black (slate-900) as requested
+        : `border-[3px] ${isDark ? 'bg-slate-900 border-slate-600 text-slate-200' : 'bg-white border-slate-900 text-slate-800'}`; // Changed from red to black (slate-900) as requested
+
+    if (isSelected) {
+        colorClasses = `border-[3px] border-blue-500 ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'}`;
+    }
 
     if (isStart) {
         colorClasses = isDark
             ? 'bg-emerald-950/30 border-[3px] border-emerald-500/50 text-emerald-400'
             : 'bg-emerald-50 border-[3px] border-emerald-500 text-emerald-700'; // Removed shadow
+        if (isSelected) {
+            colorClasses = `border-[3px] border-blue-500 ${isDark ? 'bg-emerald-950/30 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`;
+        }
     } else if (isEnd) {
         colorClasses = isDark
             ? 'bg-slate-800 border-[3px] border-slate-600 text-slate-200'
             : 'bg-slate-900 border-[3px] border-slate-700 text-white'; // Removed shadow
+        if (isSelected) {
+            colorClasses = `border-[3px] border-blue-500 ${isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-900 text-white'}`;
+        }
     }
 
     return (
         <div
+            onClick={onClick}
             onContextMenu={(e) => onContextMenu(e, data.id)}
             onDoubleClick={() => onDoubleClick(data)}
             onMouseDown={onMouseDown}
@@ -53,9 +66,9 @@ export const Node: React.FC<NodeProps & { onMouseDown?: (e: React.MouseEvent) =>
             }}
         >
             <div className={`absolute top-2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${isStart ? (isDark ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-100 text-emerald-700') :
-                    isEnd ? (isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-800 text-slate-300') :
-                        isCritical ? (isDark ? 'bg-rose-900/30 text-rose-300' : 'bg-rose-100 text-rose-700') :
-                            (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500')
+                isEnd ? (isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-800 text-slate-300') :
+                    isCritical ? (isDark ? 'bg-rose-900/30 text-rose-300' : 'bg-rose-100 text-rose-700') :
+                        (isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500')
                 }`}>
                 ID: {data.id}
             </div>

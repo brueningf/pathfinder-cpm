@@ -43,10 +43,14 @@ export const calculateLayout = (processedTasks: ProcessedTask[]): LayoutNode[] =
             const totalHeight = nodes.length * SIBLING_SPACING;
             const startY = -(totalHeight / 2) + (SIBLING_SPACING / 2);
 
+            const defaultX = level * LEVEL_SPACING + 150;
+            const defaultY = startY + (index * SIBLING_SPACING) + 400;
+
             layoutNodes.push({
                 ...node,
-                x: level * LEVEL_SPACING + 150,
-                y: startY + (index * SIBLING_SPACING) + 400
+                x: node.manualX !== undefined ? node.manualX : defaultX,
+                y: node.manualY !== undefined ? node.manualY : defaultY,
+                level: level
             });
         });
     });

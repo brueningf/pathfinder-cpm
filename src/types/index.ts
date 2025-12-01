@@ -20,6 +20,8 @@ export interface Task {
     manualLF?: number | string;
     manualSlack?: number | string;
     manualCritical?: 'auto' | 'true' | 'false';
+    manualX?: number;
+    manualY?: number;
 }
 
 export interface ProcessedTask extends Task {

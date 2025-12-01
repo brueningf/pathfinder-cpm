@@ -9,6 +9,7 @@ import { EditTaskModal } from './EditTaskModal';
 import { GanttChart } from './GanttChart';
 import { toPng } from 'html-to-image';
 import { HelpModal } from './HelpModal';
+import { NodeDetailsPanel } from './NodeDetailsPanel';
 
 interface EditorProps {
     project: Project;
@@ -22,6 +23,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [helpOpen, setHelpOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
     // Quick Add State
     const [newTaskName, setNewTaskName] = useState('');
@@ -39,10 +41,13 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [lastSaved, setLastSaved] = useState(false);
     const [lastTouch, setLastTouch] = useState<{ x: number, y: number } | null>(null);
+    const [initialNodePos, setInitialNodePos] = useState<{ x: number, y: number } | null>(null);
+    const [draggingNodeOverride, setDraggingNodeOverride] = useState<{ id: string, x: number, y: number } | null>(null);
 
     const canvasRef = useRef<HTMLDivElement>(null);
     const exportRef = useRef<HTMLDivElement>(null);
     const quickAddInputRef = useRef<HTMLInputElement>(null);
+    const ganttRef = useRef<HTMLDivElement>(null);
 
     const isDark = theme === 'dark';
 
@@ -71,6 +76,20 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
         const cpmResult = calculateCPM(tasks);
         return calculateLayout(cpmResult.processedTasks);
     }, [tasks, containerSize]);
+
+    const displayData = useMemo(() => {
+        if (!draggingNodeOverride) return processedData;
+        return processedData.map(node => {
+            if (node.id === draggingNodeOverride.id) {
+                return { ...node, x: draggingNodeOverride.x, y: draggingNodeOverride.y };
+            }
+            return node;
+        });
+    }, [processedData, draggingNodeOverride]);
+
+    const selectedNode = useMemo(() => {
+        return processedData.find(n => n.id === selectedNodeId);
+    }, [processedData, selectedNodeId]);
 
     const projectDuration = useMemo(() => {
         if (processedData.length === 0) return 0;
@@ -136,14 +155,119 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
         setTimeout(() => setLastSaved(false), 2000);
     };
 
+    const exportToOfficialFormat = async (dataUrl: string, type: 'cpm' | 'gantt') => {
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.zIndex = '-9999';
+        container.style.width = '1200px'; // Fixed width for consistency
+        document.body.appendChild(container);
+
+        // Theme colors - Minimalist
+        const bg = isDark ? '#020617' : '#ffffff';
+        const text = isDark ? '#e2e8f0' : '#000000';
+        const border = isDark ? '#475569' : '#000000'; // Stronger contrast for lines
+
+        const date = new Date().toLocaleDateString();
+
+        const htmlContent = `
+            <div style="background-color: ${bg}; color: ${text}; padding: 20px; font-family: 'Courier New', monospace; display: flex; flex-direction: column; height: auto; min-height: 800px; border: 1px solid ${border}; box-sizing: border-box;">
+                
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid ${border}; padding-bottom: 10px; margin-bottom: 20px;">
+                    <div>
+                        <h1 style="font-size: 16px; font-weight: bold; text-transform: uppercase; margin: 0; letter-spacing: 2px;">PATHFINDER</h1>
+                    </div>
+                    <div style="text-align: right; font-size: 10px; text-transform: uppercase;">
+                        <div>Date: ${date}</div>
+                    </div>
+                </div>
+
+                <!-- Content (Centered Image) -->
+                <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; position: relative;">
+                    <img id="export-image" src="${dataUrl}" style="max-width: 100%; height: auto; display: block;" />
+                </div>
+
+                <!-- Footer / Info Table -->
+                <div style="display: flex; justify-content: flex-end; margin-top: 20px; padding-top: 10px;">
+                    <table style="border-collapse: collapse; font-size: 10px; text-transform: uppercase; width: 400px;">
+                        <tr>
+                            <td style="border: 1px solid ${border}; padding: 5px 10px; font-weight: bold; width: 30%;">Project</td>
+                            <td style="border: 1px solid ${border}; padding: 5px 10px;">${project.name}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid ${border}; padding: 5px 10px; font-weight: bold;">View</td>
+                            <td style="border: 1px solid ${border}; padding: 5px 10px;">${type === 'cpm' ? 'Network Diagram' : 'Gantt Chart'}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid ${border}; padding: 5px 10px; font-weight: bold;">Stats</td>
+                            <td style="border: 1px solid ${border}; padding: 5px 10px;">${tasks.length} Tasks / ${projectDuration} Days</td>
+                        </tr>
+                    </table>
+                </div>
+
+            </div>
+        `;
+
+        container.innerHTML = htmlContent;
+
+        // Wait for image to load
+        const img = container.querySelector('#export-image') as HTMLImageElement;
+        await new Promise((resolve) => {
+            if (img.complete) resolve(true);
+            else img.onload = () => resolve(true);
+        });
+
+        try {
+            const finalDataUrl = await toPng(container, { backgroundColor: bg, pixelRatio: 3 });
+            const link = document.createElement('a');
+            link.download = `${project.name}-${type}-plan.png`;
+            link.href = finalDataUrl;
+            link.click();
+        } catch (err) {
+            console.error('Official export failed', err);
+        } finally {
+            document.body.removeChild(container);
+        }
+    };
+
     const handleExport = async () => {
-        if (exportRef.current) {
+        if (viewMode === 'gantt' && ganttRef.current) {
             try {
-                const dataUrl = await toPng(exportRef.current, { backgroundColor: isDark ? '#020617' : '#fafaf9' });
-                const link = document.createElement('a');
-                link.download = `${project.name}-cpm.png`;
-                link.href = dataUrl;
-                link.click();
+                // Capture raw Gantt
+                const dataUrl = await toPng(ganttRef.current, { backgroundColor: isDark ? '#0f172a' : '#ffffff', pixelRatio: 3 });
+                await exportToOfficialFormat(dataUrl, 'gantt');
+            } catch (err) {
+                console.error('Gantt export failed', err);
+            }
+        } else if (viewMode === 'diagram' && exportRef.current && displayData.length > 0) {
+            try {
+                // Calculate bounding box
+                const xs = displayData.map(n => n.x!);
+                const ys = displayData.map(n => n.y!);
+                const minX = Math.min(...xs) - 100; // Extra padding
+                const maxX = Math.max(...xs) + 100;
+                const minY = Math.min(...ys) - 100;
+                const maxY = Math.max(...ys) + 100;
+                const width = maxX - minX;
+                const height = maxY - minY;
+
+                // Capture raw CPM
+                const dataUrl = await toPng(exportRef.current, {
+                    backgroundColor: isDark ? '#020617' : '#fafaf9',
+                    width: width,
+                    height: height,
+                    pixelRatio: 3,
+                    style: {
+                        transform: `translate(${-minX}px, ${-minY}px) scale(1)`,
+                        transformOrigin: 'top left'
+                    },
+                    filter: (node) => {
+                        return !node.classList?.contains('cpm-grid');
+                    }
+                });
+                await exportToOfficialFormat(dataUrl, 'cpm');
             } catch (err) {
                 console.error('Export failed', err);
             }
@@ -151,35 +275,75 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
     };
 
     // Canvas Interaction
-    const handleWheel = (e: React.WheelEvent) => {
-        e.preventDefault();
-        // Zoom by default
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoom(z => Math.min(Math.max(z * delta, 0.2), 3));
-    };
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            setZoom(z => Math.min(Math.max(z * delta, 0.2), 3));
+        };
+
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+        return () => {
+            canvas.removeEventListener('wheel', handleWheel);
+        };
+    }, []);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 1 || (e.button === 0 && !draggedNode)) { // Middle click or left click on empty space
             setIsDragging(true);
             setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+            setSelectedNodeId(null); // Deselect when clicking empty space
         }
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (isDragging) {
             setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+        } else if (draggedNode && initialNodePos) {
+            const dx = (e.clientX - dragStart.x) / zoom;
+            const dy = (e.clientY - dragStart.y) / zoom;
+            setDraggingNodeOverride({
+                id: draggedNode,
+                x: initialNodePos.x + dx,
+                y: initialNodePos.y + dy
+            });
         }
     };
 
     const handleMouseUp = () => {
-        setIsDragging(false);
-        setDraggedNode(null);
+        if (isDragging) {
+            setIsDragging(false);
+        }
+        if (draggedNode && draggingNodeOverride) {
+            updateTask(draggedNode, draggedNode, { manualX: draggingNodeOverride.x, manualY: draggingNodeOverride.y });
+            setDraggedNode(null);
+            setDraggingNodeOverride(null);
+            setInitialNodePos(null);
+        } else if (draggedNode) {
+            setDraggedNode(null);
+            setInitialNodePos(null);
+        }
     };
 
     const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
         e.stopPropagation();
-        // Node dragging logic could be implemented here if we want manual layout
-        // For now, we just prevent canvas panning
+        if (e.button === 0) {
+            const node = processedData.find(n => n.id === nodeId);
+            if (node) {
+                setDraggedNode(nodeId);
+                setDragStart({ x: e.clientX, y: e.clientY });
+                setInitialNodePos({ x: node.x!, y: node.y! });
+            }
+        }
+    };
+
+    const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
+        e.stopPropagation();
+        setSelectedNodeId(nodeId);
     };
 
     const handleTouchStart = (e: React.TouchEvent) => {
@@ -346,12 +510,12 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                 </div>
 
                 {/* Canvas */}
-                <div className={`flex-1 relative overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`} ref={canvasRef} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
+                <div className={`flex-1 relative overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`} ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
                     {/* Main Content Area */}
                     <div className={`flex-1 overflow-hidden relative ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`}>
                         {viewMode === 'gantt' ? (
-                            <div className="p-8">
-                                <GanttChart project={{ ...project, data: processedData.length > 0 ? processedData : tasks }} />
+                            <div className="p-8" ref={ganttRef}>
+                                <GanttChart project={{ ...project, data: processedData.length > 0 ? processedData : tasks }} theme={theme} />
                             </div>
                         ) : (
                             <div
@@ -366,7 +530,7 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                                 }}
                             >
                                 {/* Grid background */}
-                                <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: `radial-gradient(${isDark ? '#334155' : '#cbd5e1'} 1px, transparent 1px)`, backgroundSize: '24px 24px', transform: `translate(${pan.x % 24}px, ${pan.y % 24}px)` }} />
+                                <div className="cpm-grid absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: `radial-gradient(${isDark ? '#334155' : '#cbd5e1'} 1px, transparent 1px)`, backgroundSize: '24px 24px', transform: `translate(${pan.x % 24}px, ${pan.y % 24}px)` }} />
 
                                 {/* Connections */}
                                 <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 overflow-visible">
@@ -378,9 +542,9 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                                             <polygon points="0 0, 10 3.5, 0 7" fill={isDark ? '#f43f5e' : '#f43f5e'} />
                                         </marker>
                                     </defs>
-                                    {processedData.map(node => (
+                                    {displayData.map(node => (
                                         node.predecessors.map(predId => {
-                                            const predNode = processedData.find(n => n.id === predId);
+                                            const predNode = displayData.find(n => n.id === predId);
                                             if (predNode) {
                                                 const isCriticalConnection = node.isCritical && predNode.isCritical && (Math.abs(node.es - predNode.ef) < 0.001); // Simplified critical path check
                                                 // Node diameter is 180, so radius is 90.
@@ -400,10 +564,12 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                                 </svg>
 
                                 {/* Nodes */}
-                                {processedData.map(node => (
+                                {displayData.map(node => (
                                     <Node
                                         key={node.id}
                                         data={node as LayoutNode}
+                                        isSelected={selectedNodeId === node.id}
+                                        onClick={(e) => handleNodeClick(e, node.id)}
                                         onContextMenu={(e) => handleContextMenu(e, node.id)}
                                         onDoubleClick={() => setEditingTask(node as LayoutNode)}
                                         onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
@@ -413,6 +579,18 @@ export const Editor: React.FC<EditorProps> = ({ project, onSave, onBack, theme }
                             </div>
                         )}
                     </div>
+
+                    {/* Node Details Panel */}
+                    {selectedNode && (
+                        <NodeDetailsPanel
+                            node={selectedNode}
+                            onEdit={() => setEditingTask(selectedNode)}
+                            onDelete={() => removeTask(selectedNode.id)}
+                            onClose={() => setSelectedNodeId(null)}
+                            theme={theme}
+                        />
+                    )}
+
                     {/* Floating Controls */}
                     <div className="absolute bottom-6 right-6 flex gap-2">
                         <button onClick={() => setZoom(Math.min(zoom + 0.1, 2))} className={`p-3 shadow-lg rounded-full ${isDark ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-white text-stone-600 hover:bg-stone-50'}`}><ZoomIn size={20} /></button>
