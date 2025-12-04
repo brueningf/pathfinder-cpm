@@ -338,20 +338,8 @@ export const CPMEditor: React.FC<CPMEditorProps> = ({ project, onSave, onBack, t
                 console.error('Gantt export failed', err);
             }
         } else if (viewMode === 'diagram') {
-            // We need to capture the diagram. BaseDiagramEditor renders DiagramCanvas.
-            // We can try to capture the element that contains BaseDiagramEditor.
-            // But BaseDiagramEditor has a ref? No.
-            // We can use document.querySelector to find the canvas container or pass a ref to BaseDiagramEditor?
-            // BaseDiagramEditor doesn't expose a ref.
-            // But we wrapped it in a div. We can ref that div.
-            // Actually, `exportRef` was used in the old editor.
-            // Let's wrap BaseDiagramEditor in a div with `exportRef`.
             if (exportRef.current) {
                 try {
-                    // We need to capture the inner content, potentially scaling it.
-                    // For now, just capture the visible area or the whole container.
-                    // The old editor calculated bounding box.
-                    // Here we might just capture the container.
                     const dataUrl = await toPng(exportRef.current, { backgroundColor: isDark ? '#020617' : '#fafaf9', pixelRatio: 3 });
                     await exportToOfficialFormat(dataUrl, 'cpm');
                 } catch (err) {
