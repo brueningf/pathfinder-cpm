@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronUp, AlertCircle, HelpCircle, Edit2, GripVertical, FileDown } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, HelpCircle, Edit2, GripVertical, FileDown } from 'lucide-react';
 import { Requirement } from '../types';
 import { HelpModal } from './HelpModal';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { jsPDF } from 'jspdf';
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
+import { escapeHtml } from '../utils/security';
 
 interface RequirementsProps {
     requirements: Requirement[];
@@ -129,29 +130,24 @@ export const Requirements: React.FC<RequirementsProps> = ({ requirements, onUpda
 
     const handleExportPDF = async () => {
         // Create a container for the export
-        // We use absolute positioning to allow it to expand fully without being constrained by viewport height
         const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.top = '0';
+        container.style.position = 'fixed';
+        container.style.top = '-10000px'; // Off-screen but rendered
         container.style.left = '0';
-        container.style.width = '100%';
         container.style.zIndex = '9999';
-        container.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; // Semi-transparent background to hide app
-        container.style.display = 'flex';
-        container.style.justifyContent = 'center';
+
+
 
         // Create the actual document element
         const element = document.createElement('div');
         element.style.width = '800px';
-        element.style.minHeight = '100vh'; // Ensure at least full screen
         element.style.padding = '40px';
         element.style.backgroundColor = '#ffffff';
         element.style.color = '#000000';
-        element.style.fontFamily = 'Courier New, Courier, monospace'; // Minimalist font
+        element.style.fontFamily = 'Courier New, Courier, monospace';
         element.style.boxSizing = 'border-box';
         element.style.borderLeft = '1px solid #000';
         element.style.borderRight = '1px solid #000';
-        element.style.margin = '0 auto';
 
         const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -171,14 +167,14 @@ export const Requirements: React.FC<RequirementsProps> = ({ requirements, onUpda
                             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
                                 <div style="display: flex; align-items: baseline; gap: 12px;">
                                     <span style="font-weight: bold; font-size: 14px;">#${index + 1}</span>
-                                    <h3 style="font-size: 16px; font-weight: bold; margin: 0;">${req.title}</h3>
+                                    <h3 style="font-size: 16px; font-weight: bold; margin: 0;">${escapeHtml(req.title)}</h3>
                                 </div>
                                 <div style="display: flex; gap: 8px; font-size: 10px; text-transform: uppercase; font-weight: bold;">
                                     <span style="border: 1px solid #000; padding: 2px 6px;">${req.priority}</span>
                                     <span style="border: 1px solid #000; padding: 2px 6px;">${req.type}</span>
                                 </div>
                             </div>
-                            <p style="font-size: 12px; line-height: 1.6; margin: 0; white-space: pre-wrap;">${req.description || 'No description provided.'}</p>
+                            <p style="font-size: 12px; line-height: 1.6; margin: 0; white-space: pre-wrap;">${escapeHtml(req.description || 'No description provided.')}</p>
                         </div>
                     `).join('') : '<p style="text-align: center; padding: 40px; font-style: italic;">No requirements defined.</p>'}
                 </div>
@@ -189,53 +185,26 @@ export const Requirements: React.FC<RequirementsProps> = ({ requirements, onUpda
             </div>
         `;
 
-        // Add a "Generating PDF..." message
-        const message = document.createElement('div');
-        message.innerText = 'Generating PDF...';
-        message.style.position = 'fixed';
-        message.style.top = '20px';
-        message.style.left = '50%';
-        message.style.transform = 'translateX(-50%)';
-        message.style.padding = '10px 20px';
-        message.style.backgroundColor = '#000';
-        message.style.color = '#fff';
-        message.style.fontFamily = 'sans-serif';
-        message.style.fontSize = '12px';
-        message.style.fontWeight = 'bold';
-        message.style.zIndex = '10000';
-        container.appendChild(message);
-
         container.appendChild(element);
         document.body.appendChild(container);
 
-        // Force reflow
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        element.offsetHeight;
-
-        // Wait for rendering
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         try {
-            const height = element.scrollHeight;
-            const dataUrl = await toPng(element, {
-                quality: 0.95,
-                pixelRatio: 2,
+            const dataUrl = await toJpeg(element, {
+                quality: 0.8,
                 backgroundColor: '#ffffff',
-                width: 800,
-                height: height
+                pixelRatio: 1.5,
             });
 
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'px',
-                format: [800, height]
+                format: [800, element.offsetHeight]
             });
 
-            pdf.addImage(dataUrl, 'PNG', 0, 0, 800, height);
-            pdf.save('project-requirements.pdf');
-        } catch (err) {
-            console.error('PDF export failed:', err);
-            alert('Failed to export PDF. Please try again.');
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, 800, element.offsetHeight);
+            pdf.save('requirements.pdf');
+        } catch (error) {
+            console.error('Export failed:', error);
         } finally {
             document.body.removeChild(container);
         }

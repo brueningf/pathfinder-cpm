@@ -12,13 +12,14 @@ interface DashboardProps {
     onExportData: () => void;
     onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onOpenRequirements: (id: string) => void;
+    onOpenStructuredAnalysis: (id: string) => void;
     onLoadExample?: () => void;
     theme: 'dark' | 'light';
     toggleTheme: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
-    onOpenProject, onDeleteProject, projects, onCreateProject, onExportData, onImportData, onOpenRequirements, onLoadExample, theme, toggleTheme
+    onOpenProject, onDeleteProject, projects, onCreateProject, onExportData, onImportData, onOpenRequirements, onOpenStructuredAnalysis, onLoadExample, theme, toggleTheme
 }) => {
     const [newProjectName, setNewProjectName] = useState('');
 
@@ -108,7 +109,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                     )}
                     {projects.map(p => (
-                        <div key={p.id} className={`group p-5 rounded-2xl shadow-sm border transition-all flex flex-col gap-4 ${isDark ? 'bg-slate-900 border-slate-800 hover:border-slate-700' : 'bg-white border-stone-200 hover:border-stone-300'}`}>
+                        <div key={p.id} className={`group relative p-5 rounded-2xl shadow-sm border transition-all flex flex-col gap-4 ${isDark ? 'bg-slate-900 border-slate-800 hover:border-slate-700' : 'bg-white border-stone-200 hover:border-stone-300'}`}>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDeleteProject(p.id); }}
+                                className={`absolute top-4 right-4 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${isDark ? 'text-slate-600 hover:text-red-500 hover:bg-red-500/10' : 'text-stone-400 hover:text-red-500 hover:bg-red-50'}`}
+                                title="Delete Project"
+                            >
+                                <Trash2 size={18} />
+                            </button>
                             <div className="flex items-center gap-4">
                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-slate-800 text-red-500' : 'bg-stone-100 text-red-500'}`}>
                                     <LayoutGrid size={20} />
@@ -118,15 +126,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-stone-400'}`}>{p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : 'Just now'} • {p.taskCount} tasks</p>
                                 </div>
                             </div>
-                            <div className="flex items-stretch gap-2 w-full">
-                                <button onClick={() => onOpenRequirements(p.id)} className={`btn flex-1 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700' : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200'}`}>
-                                    Requirements
-                                </button>
-                                <button onClick={() => onOpenProject(p.id)} className={`btn flex-1 ${isDark ? 'bg-slate-100 hover:bg-white text-slate-900 border-none' : 'bg-stone-800 hover:bg-stone-900 text-white border-none'}`}>
-                                    Open Diagram
-                                </button>
-                                <button onClick={() => onDeleteProject(p.id)} className={`p-2 rounded-lg transition-colors ${isDark ? 'text-slate-600 hover:text-red-500 hover:bg-red-500/10' : 'text-stone-400 hover:text-red-500 hover:bg-red-50'}`}>
-                                    <Trash2 size={18} />
+                            <div className="flex flex-col gap-2 w-full">
+                                <div className="flex gap-2">
+                                    <button onClick={() => onOpenRequirements(p.id)} className={`btn flex-1 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700' : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200'}`}>
+                                        Requirements
+                                    </button>
+                                    <button onClick={() => onOpenStructuredAnalysis(p.id)} className={`btn flex-1 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700' : 'bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200'}`}>
+                                        Analysis
+                                    </button>
+                                </div>
+                                <button onClick={() => onOpenProject(p.id)} className={`btn w-full flex items-center justify-center gap-2 ${isDark ? 'bg-slate-100 hover:bg-white text-slate-900 border-none' : 'bg-stone-800 hover:bg-stone-900 text-white border-none'}`}>
+                                    <Activity size={16} /> CPM
                                 </button>
                             </div>
                         </div>
@@ -145,6 +155,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     Pathfinder • Made by <a href="https://fredesk.com" target="_blank" rel="noopener noreferrer" className={`hover:underline ${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-stone-500 hover:text-stone-600'}`}>Fredesk</a>
                 </p>
             </div>
-        </div>
+        </div >
     );
 };

@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { Editor } from './components/Editor';
 import { Requirements } from './components/Requirements';
+import { StructuredAnalysis } from './components/StructuredAnalysis/StructuredAnalysis';
 import { Project, Task, Requirement } from './types';
 
 const NEW_PROJECT_TEMPLATE: Task[] = [
@@ -33,7 +34,47 @@ const EXAMPLE_PROJECT: Project = {
         { id: 'R1', title: 'User Authentication', description: 'Secure login via Email and OAuth (Google, Apple).', priority: 'Must', type: 'Functional', status: 'Approved' },
         { id: 'R2', title: 'Push Notifications', description: 'Real-time alerts for user engagement.', priority: 'Should', type: 'Functional', status: 'Pending' },
         { id: 'R3', title: 'Offline Mode', description: 'App must function without internet connection for core features.', priority: 'Must', type: 'Non-Functional', status: 'Draft' },
-    ]
+    ],
+    structuredAnalysis: {
+        contextDiagram: {
+            id: 'context',
+            nodes: [
+                { id: 'sys', type: 'process', name: 'Mobile App', position: { x: 400, y: 300 }, size: { width: 150, height: 150 } },
+                { id: 'user', type: 'external_entity', name: 'User', position: { x: 100, y: 300 }, size: { width: 120, height: 80 } },
+                { id: 'store', type: 'external_entity', name: 'App Store', position: { x: 700, y: 300 }, size: { width: 120, height: 80 } },
+                { id: 'bound', type: 'boundary', name: 'System Boundary', position: { x: 300, y: 200 }, size: { width: 350, height: 350 } }
+            ],
+            connections: [
+                { id: 'c1', sourceId: 'user', targetId: 'sys', label: 'Credentials' },
+                { id: 'c2', sourceId: 'sys', targetId: 'user', label: 'App Content' },
+                { id: 'c3', sourceId: 'sys', targetId: 'store', label: 'App Binary' }
+            ]
+        },
+        dfds: [
+            {
+                id: 'level0',
+                level: 0,
+                nodes: [
+                    { id: 'p1', type: 'process', name: 'Authenticate', position: { x: 150, y: 150 }, size: { width: 160, height: 96 }, level: 1 },
+                    { id: 'p2', type: 'process', name: 'Browse Content', position: { x: 400, y: 150 }, size: { width: 160, height: 96 }, level: 1 },
+                    { id: 'p3', type: 'process', name: 'Process Order', position: { x: 400, y: 400 }, size: { width: 160, height: 96 }, level: 1 },
+                    { id: 'd1', type: 'data_store', name: 'User DB', position: { x: 150, y: 400 }, size: { width: 160, height: 64 } },
+                    { id: 'd2', type: 'data_store', name: 'Product DB', position: { x: 650, y: 150 }, size: { width: 160, height: 64 } }
+                ],
+                connections: [
+                    { id: 'f1', sourceId: 'p1', targetId: 'd1', label: 'Verify User' },
+                    { id: 'f2', sourceId: 'p2', targetId: 'd2', label: 'Get Products' },
+                    { id: 'f3', sourceId: 'p1', targetId: 'p2', label: 'User Token' },
+                    { id: 'f4', sourceId: 'p2', targetId: 'p3', label: 'Order Details' }
+                ]
+            }
+        ],
+        dictionary: [
+            { id: 'de1', name: 'Credentials', type: 'data_structure', definition: 'Username + Password', relatedDiagramIds: ['context'] },
+            { id: 'de2', name: 'User Token', type: 'data_element', definition: 'JWT String', relatedDiagramIds: ['level0'] }
+        ],
+        stds: []
+    }
 };
 
 export default function App() {
@@ -42,12 +83,51 @@ export default function App() {
         return saved ? JSON.parse(saved) : [EXAMPLE_PROJECT];
     });
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-    const [view, setView] = useState<'dashboard' | 'editor' | 'requirements'>('dashboard');
+    const [view, setView] = useState<'dashboard' | 'editor' | 'requirements' | 'structured_analysis'>('dashboard');
 
     // Save to LocalStorage whenever projects change
     useEffect(() => {
         localStorage.setItem('pathfinder_projects', JSON.stringify(projects));
     }, [projects]);
+
+    // Sync URL with view state
+    useEffect(() => {
+        const path = view === 'dashboard' ? '/' : `/${view}`;
+        if (window.location.pathname !== path) {
+            window.history.pushState({}, '', path);
+        }
+
+        // Handle browser back button
+        const handlePopState = () => {
+            const path = window.location.pathname;
+            if (path === '/' || path === '') {
+                setView('dashboard');
+                setActiveProjectId(null);
+            } else if (path === '/analysis' || path === '/structured_analysis') {
+                // We need an active project for this, if none, go back to dashboard
+                if (activeProjectId) setView('structured_analysis');
+                else {
+                    setView('dashboard');
+                    window.history.replaceState({}, '', '/');
+                }
+            } else if (path === '/editor') {
+                if (activeProjectId) setView('editor');
+                else {
+                    setView('dashboard');
+                    window.history.replaceState({}, '', '/');
+                }
+            } else if (path === '/requirements') {
+                if (activeProjectId) setView('requirements');
+                else {
+                    setView('dashboard');
+                    window.history.replaceState({}, '', '/');
+                }
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [view, activeProjectId]);
 
     const handleCreateProject = (name: string) => {
         const newProject: Project = {
@@ -146,8 +226,6 @@ export default function App() {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
-    // ... existing code ...
-
     if (view === 'editor' && activeProject) {
         return <Editor project={activeProject} onSave={handleSaveProject} onBack={handleBack} theme={theme} />;
     }
@@ -167,6 +245,22 @@ export default function App() {
         );
     }
 
+    if (view === 'structured_analysis' && activeProject) {
+        return (
+            <StructuredAnalysis
+                project={activeProject}
+                onSave={(id, data) => {
+                    const updatedProjects = projects.map(p =>
+                        p.id === id ? { ...p, structuredAnalysis: data, updatedAt: new Date().toISOString() } : p
+                    );
+                    setProjects(updatedProjects);
+                }}
+                onBack={handleBack}
+                theme={theme}
+            />
+        );
+    }
+
     const handleLoadExample = () => {
         if (window.confirm("Load example project? This will add 'Mobile App Launch' to your projects.")) {
             const exampleWithNewId = { ...EXAMPLE_PROJECT, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
@@ -179,6 +273,7 @@ export default function App() {
         onCreateProject={handleCreateProject}
         onOpenProject={handleOpenProject}
         onOpenRequirements={(id) => { setActiveProjectId(id); setView('requirements'); }}
+        onOpenStructuredAnalysis={(id) => { setActiveProjectId(id); setView('structured_analysis'); }}
         onDeleteProject={handleDeleteProject}
         onExportData={handleExportData}
         onImportData={handleImportData}
