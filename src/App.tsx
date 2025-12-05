@@ -80,7 +80,19 @@ const EXAMPLE_PROJECT: Project = {
 export default function App() {
     const [projects, setProjects] = useState<Project[]>(() => {
         const saved = localStorage.getItem('pathfinder_projects');
-        return saved ? JSON.parse(saved) : [EXAMPLE_PROJECT];
+        let initialProjects = saved ? JSON.parse(saved) : [EXAMPLE_PROJECT];
+        
+        // Patch: Ensure example project has structured analysis data
+        // should be removed when example project is removed. TODO
+        // This fixes the issue where old data in localStorage might be missing the new fields
+        initialProjects = initialProjects.map((p: Project) => {
+            if (p.id === EXAMPLE_PROJECT.id && !p.structuredAnalysis) {
+                return { ...p, structuredAnalysis: EXAMPLE_PROJECT.structuredAnalysis };
+            }
+            return p;
+        });
+
+        return initialProjects;
     });
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
     const [view, setView] = useState<'dashboard' | 'editor' | 'requirements' | 'structured_analysis'>('dashboard');
