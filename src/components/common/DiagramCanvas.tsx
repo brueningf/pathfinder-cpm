@@ -45,7 +45,25 @@ export interface DiagramCanvasProps {
     isDark: boolean;
     mode?: 'select' | 'connect' | 'pan';
     children?: React.ReactNode;
+    zoom: number;
+    onZoomChange: (zoom: number) => void;
+    pan: { x: number, y: number };
+    onPanChange: (pan: { x: number, y: number }) => void;
 }
+
+// Helper to get pointer position from Mouse or Touch events
+const getPointerPos = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
+    if ('touches' in e && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    if ('changedTouches' in e && e.changedTouches.length > 0) {
+        return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    }
+    if ('clientX' in e) {
+        return { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
+    }
+    return { x: 0, y: 0 };
+};
 
 // Helper to calculate intersection between a line (center to center) and a node boundary
 const calculateIntersection = (
@@ -156,10 +174,14 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
     onSelectionChange,
     isDark,
     mode = 'select',
-    children
+    children,
+    zoom,
+    onZoomChange,
+    pan,
+    onPanChange
 }) => {
-    const [pan, setPan] = useState({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(1);
+    // const [pan, setPan] = useState({ x: 0, y: 0 }); // Lifted to parent
+    // const [zoom, setZoom] = useState(1); // Lifted to parent
     const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -199,14 +221,14 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
             const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            setZoom(z => Math.min(Math.max(z * delta, 0.2), 3));
+            onZoomChange(Math.min(Math.max(zoom * delta, 0.2), 3));
         };
 
         canvas.addEventListener('wheel', handleWheel, { passive: false });
         return () => canvas.removeEventListener('wheel', handleWheel);
     }, []);
 
-    const handleMouseDown = (e: React.MouseEvent) => {
+    const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
         // If drawing connection, clicking background cancels it
         if (isDrawingConnection) {
             setIsDrawingConnection(false);
@@ -215,38 +237,44 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
             return;
         }
 
+        const pos = getPointerPos(e);
+        const isTouch = 'touches' in e;
+        const button = isTouch ? 0 : (e as React.MouseEvent).button;
+
         // Middle mouse or Pan mode triggers canvas drag
-        if (e.button === 1 || mode === 'pan') {
+        if (button === 1 || mode === 'pan') {
             setIsDraggingCanvas(true);
-            setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-            onBackgroundClick?.(e);
+            setDragStart({ x: pos.x - pan.x, y: pos.y - pan.y });
+            onBackgroundClick?.(e as any);
             return;
         }
 
         // Select mode: Box selection
-        if (mode === 'select' && e.button === 0) {
+        if (mode === 'select' && button === 0) {
             const rect = canvasRef.current?.getBoundingClientRect();
             if (!rect) return;
 
-            const x = (e.clientX - rect.left - pan.x) / zoom;
-            const y = (e.clientY - rect.top - pan.y) / zoom;
+            const x = (pos.x - rect.left - pan.x) / zoom;
+            const y = (pos.y - rect.top - pan.y) / zoom;
 
             setIsSelecting(true);
             setSelectionBox({ start: { x, y }, end: { x, y } });
-            onBackgroundClick?.(e); // Deselect current selection
+            onBackgroundClick?.(e as any); // Deselect current selection
         }
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
+        const pos = getPointerPos(e);
+
         if (isDraggingCanvas) {
-            setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+            onPanChange({ x: pos.x - dragStart.x, y: pos.y - dragStart.y });
         } else if (isResizing && resizingNodeId && initialSize) {
-            const dx = (e.clientX - dragStart.x) / zoom;
-            const dy = (e.clientY - dragStart.y) / zoom;
+            const dx = (pos.x - dragStart.x) / zoom;
+            const dy = (pos.y - dragStart.y) / zoom;
             onNodeResize?.(resizingNodeId, Math.max(50, initialSize.width + dx), Math.max(50, initialSize.height + dy));
         } else if (draggedNodeId && initialNodePos && mode === 'select') {
-            const dx = (e.clientX - dragStart.x) / zoom;
-            const dy = (e.clientY - dragStart.y) / zoom;
+            const dx = (pos.x - dragStart.x) / zoom;
+            const dy = (pos.y - dragStart.y) / zoom;
 
             // Add threshold to prevent accidental moves on click
             if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
@@ -257,21 +285,21 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
             const rect = canvasRef.current?.getBoundingClientRect();
             if (rect) {
                 setConnectionEndPos({
-                    x: (e.clientX - rect.left - pan.x) / zoom,
-                    y: (e.clientY - rect.top - pan.y) / zoom
+                    x: (pos.x - rect.left - pan.x) / zoom,
+                    y: (pos.y - rect.top - pan.y) / zoom
                 });
             }
         } else if (isSelecting && selectionBox) {
             const rect = canvasRef.current?.getBoundingClientRect();
             if (rect) {
-                const x = (e.clientX - rect.left - pan.x) / zoom;
-                const y = (e.clientY - rect.top - pan.y) / zoom;
+                const x = (pos.x - rect.left - pan.x) / zoom;
+                const y = (pos.y - rect.top - pan.y) / zoom;
                 setSelectionBox({ ...selectionBox, end: { x, y } });
             }
         }
     };
 
-    const handleMouseUp = (e: React.MouseEvent) => {
+    const handlePointerUp = (e: React.MouseEvent | React.TouchEvent) => {
         if (isSelecting && selectionBox) {
             // Calculate intersection
             const x1 = Math.min(selectionBox.start.x, selectionBox.end.x);
@@ -306,11 +334,10 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                     }
                 } else {
                     // Fallback for single select legacy
-                    onConnectionClick?.(selectedNodes[0].id, e);
+                    onConnectionClick?.(selectedNodes[0].id, e as any);
                 }
             } else {
                 // If box is empty and we are not holding modifier, clear selection?
-                // Or maybe just keep it? Standard behavior is usually clear if clicking background, but box select on empty area might clear too.
                 if (!e.ctrlKey && !e.shiftKey) {
                     onSelectionChange?.([]);
                 }
@@ -328,17 +355,21 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         setInitialSize(null);
     };
 
-    const handleNodeMouseDown = (e: React.MouseEvent, id: string, x: number, y: number) => {
+    const handleNodePointerDown = (e: React.MouseEvent | React.TouchEvent, id: string, x: number, y: number) => {
         // Allow elements to opt-out of dragging/selection (e.g. empty space in a boundary)
         if ((e.target as HTMLElement).dataset.diagramIgnore) {
             return;
         }
 
         e.stopPropagation();
-        if (e.button === 0) {
+        const pos = getPointerPos(e);
+        const isTouch = 'touches' in e;
+        const button = isTouch ? 0 : (e as React.MouseEvent).button;
+
+        if (button === 0) {
             if (mode === 'select') {
                 setDraggedNodeId(id);
-                setDragStart({ x: e.clientX, y: e.clientY });
+                setDragStart({ x: pos.x, y: pos.y });
                 setInitialNodePos({ x, y });
             } else if (mode === 'connect') {
                 if (isDrawingConnection && connectionStartNodeId) {
@@ -361,7 +392,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         }
     };
 
-    const handleNodeMouseUp = (e: React.MouseEvent, id: string) => {
+    const handleNodePointerUp = (e: React.MouseEvent | React.TouchEvent, id: string) => {
         if (mode === 'connect' && isDrawingConnection && connectionStartNodeId) {
             if (connectionStartNodeId !== id) {
                 // Complete connection (Drag-to-Connect or Click-Move-Click)
@@ -385,11 +416,12 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         // We should check if isDrawingConnection in handleNodeMouseDown.
     };
 
-    const handleResizeMouseDown = (e: React.MouseEvent, id: string, width: number, height: number) => {
+    const handleResizePointerDown = (e: React.MouseEvent | React.TouchEvent, id: string, width: number, height: number) => {
         e.stopPropagation();
+        const pos = getPointerPos(e);
         setIsResizing(true);
         setResizingNodeId(id);
-        setDragStart({ x: e.clientX, y: e.clientY });
+        setDragStart({ x: pos.x, y: pos.y });
         setInitialSize({ width, height });
     };
 
@@ -397,10 +429,13 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         <div
             ref={canvasRef}
             className={`w-full h-full relative overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-stone-50'}`}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            onMouseDown={handlePointerDown}
+            onMouseMove={handlePointerMove}
+            onMouseUp={handlePointerUp}
+            onMouseLeave={handlePointerUp}
+            onTouchStart={handlePointerDown}
+            onTouchMove={handlePointerMove}
+            onTouchEnd={handlePointerUp}
             style={{
                 cursor: mode === 'pan' || isDraggingCanvas ? 'grabbing' : mode === 'connect' ? (isDrawingConnection ? 'crosshair' : 'pointer') : 'default'
             }}
@@ -602,7 +637,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                             pointerEvents: node.pointerEvents
                         }}
                         onMouseDown={(e) => {
-                            handleNodeMouseDown(e, node.id, node.x, node.y);
+                            handleNodePointerDown(e, node.id, node.x, node.y);
                             // Ensure selection happens on click
                             if (mode === 'select') {
                                 e.stopPropagation();
@@ -625,7 +660,23 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                                 }
                             }
                         }}
-                        onMouseUp={(e) => handleNodeMouseUp(e, node.id)}
+                        onTouchStart={(e) => {
+                            handleNodePointerDown(e, node.id, node.x, node.y);
+                            // Ensure selection happens on click
+                            if (mode === 'select') {
+                                e.stopPropagation();
+                                if (onSelectionChange) {
+                                    // No ctrl/shift on touch usually, so just select
+                                    if (!selectedIds.includes(node.id)) {
+                                        onSelectionChange([node.id]);
+                                    }
+                                } else {
+                                    onConnectionClick?.(node.id, e as any);
+                                }
+                            }
+                        }}
+                        onMouseUp={(e) => handleNodePointerUp(e, node.id)}
+                        onTouchEnd={(e) => handleNodePointerUp(e, node.id)}
                         onClick={(e) => {
                             e.stopPropagation();
                             // Handle simple click selection if not handled by MouseDown (e.g. to clear others if clicked without drag)
@@ -640,7 +691,8 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                         {node.resizable && mode === 'select' && (
                             <div
                                 className={`absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'bg-slate-600' : 'bg-stone-400'}`}
-                                onMouseDown={(e) => handleResizeMouseDown(e, node.id, node.width || 100, node.height || 100)}
+                                onMouseDown={(e) => handleResizePointerDown(e, node.id, node.width || 100, node.height || 100)}
+                                onTouchStart={(e) => handleResizePointerDown(e, node.id, node.width || 100, node.height || 100)}
                                 style={{ borderTopLeftRadius: '4px' }}
                             />
                         )}
@@ -649,11 +701,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
             </div>
 
             {/* Controls */}
-            <div className="absolute bottom-6 right-6 flex gap-2">
-                <button onClick={() => setZoom(Math.min(zoom + 0.1, 3))} className={`p-3 shadow-lg rounded-full ${isDark ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-white text-stone-600 hover:bg-stone-50'}`}><ZoomIn size={20} /></button>
-                <button onClick={() => setZoom(Math.max(zoom - 0.1, 0.2))} className={`p-3 shadow-lg rounded-full ${isDark ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-white text-stone-600 hover:bg-stone-50'}`}><ZoomOut size={20} /></button>
-                <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }} className={`p-3 shadow-lg rounded-full ${isDark ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-white text-stone-600 hover:bg-stone-50'}`}><Move size={20} /></button>
-            </div>
+            {/* Controls moved to parent */}
 
             {children}
         </div>

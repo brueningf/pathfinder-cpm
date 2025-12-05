@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { DiagramCanvas, CanvasNode, CanvasConnection } from '../common/DiagramCanvas';
-import { MousePointer, Link, Move, Trash2 } from 'lucide-react';
+import { MousePointer, Link, Move, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 
 export interface BaseDiagramEditorProps {
     // Data
@@ -52,6 +52,9 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
     propertiesPanelContent,
     breadcrumbs
 }) => {
+    const [zoom, setZoom] = React.useState(1);
+    const [pan, setPan] = React.useState({ x: 0, y: 0 });
+
     // Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -181,6 +184,31 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
                             </button>
                         </div>
 
+                        {/* Zoom / Pan Controls */}
+                        <div className={`flex rounded-lg p-1 ${isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-stone-200 shadow-sm'}`}>
+                            <button
+                                onClick={() => setZoom(Math.min(zoom + 0.1, 3))}
+                                className={`p-2 rounded transition-colors ${isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100'}`}
+                                title="Zoom In"
+                            >
+                                <ZoomIn size={20} />
+                            </button>
+                            <button
+                                onClick={() => setZoom(Math.max(zoom - 0.1, 0.2))}
+                                className={`p-2 rounded transition-colors ${isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100'}`}
+                                title="Zoom Out"
+                            >
+                                <ZoomOut size={20} />
+                            </button>
+                            <button
+                                onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }}
+                                className={`p-2 rounded transition-colors ${isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100'}`}
+                                title="Reset View"
+                            >
+                                <Move size={20} />
+                            </button>
+                        </div>
+
                         {/* Custom Toolbar Items */}
                         {toolbarContent && (
                             <>
@@ -206,6 +234,10 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
                     isDark={isDark}
                     mode={activeTool}
                     onBackgroundClick={() => onSelectionChange([])}
+                    zoom={zoom}
+                    onZoomChange={setZoom}
+                    pan={pan}
+                    onPanChange={setPan}
                 />
 
                 {/* Properties Panel */}
