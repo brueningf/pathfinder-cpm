@@ -10,7 +10,7 @@ export interface CanvasNode {
     content: React.ReactNode;
     resizable?: boolean;
     pointerEvents?: React.CSSProperties['pointerEvents'];
-    shape?: 'rectangle' | 'circle' | 'rounded-rectangle' | 'ellipse';
+    shape?: 'rectangle' | 'circle' | 'rounded-rectangle' | 'ellipse' | 'diamond';
 }
 
 export interface CanvasConnection {
@@ -31,6 +31,8 @@ export interface CanvasConnection {
     sourceNodeId?: string;
     targetNodeId?: string;
     controlPoints?: { x: number; y: number }[];
+    sourceMarkerType?: 'arrow' | 'crows_foot_one' | 'crows_foot_many' | 'crows_foot_zero_one' | 'crows_foot_zero_many';
+    targetMarkerType?: 'arrow' | 'crows_foot_one' | 'crows_foot_many' | 'crows_foot_zero_one' | 'crows_foot_zero_many';
 }
 
 export interface DiagramCanvasProps {
@@ -173,6 +175,20 @@ const calculateIntersection = (
             };
         }
 
+        if (node.shape === 'diamond') {
+            const a = w/2;
+            const b = h/2;
+            if (a === 0 || b === 0) return center1;
+            
+            // Intersection with diamond definition |x/a| + |y/b| = 1
+            const t = 1 / ( Math.abs(dx/a) + Math.abs(dy/b) );
+            
+            return {
+                x: center1.x + dx * t,
+                y: center1.y + dy * t
+            };
+        }
+
         // Fallback for rectangle/rounded-rectangle
         return center1;
     }
@@ -229,6 +245,24 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
             x: node.x + (node.width || 0) / 2,
             y: node.y + (node.height || 0) / 2
         };
+    };
+
+    const getNodeAnchorPoint = (nodeId: string, side: 'top' | 'bottom' | 'left' | 'right', offset: number = 0.5) => {
+        const node = nodes.find(n => n.id === nodeId);
+        if (!node) return { x: 0, y: 0 };
+        const w = node.width || 100; // Default width if missing
+        const h = node.height || 60;  // Default height if missing
+        
+        // Clamp offset 0..1
+        const t = Math.max(0, Math.min(1, offset));
+        
+        switch (side) {
+            case 'top': return { x: node.x + w * t, y: node.y };
+            case 'bottom': return { x: node.x + w * t, y: node.y + h };
+            case 'left': return { x: node.x, y: node.y + h * t };
+            case 'right': return { x: node.x + w, y: node.y + h * t };
+            default: return getNodeCenter(nodeId);
+        }
     };
 
     // Wheel Zoom
@@ -497,6 +531,21 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                         <marker id="arrowhead-canvas-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
                             <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" />
                         </marker>
+                        {/* Crow's Foot Markers */}
+                        <marker id="crows_foot_many" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+                            <path d="M0,0 L12,6 L0,12" fill="none" stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="1.5" />
+                        </marker>
+                         <marker id="crows_foot_one" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+                            <path d="M12,0 L12,12 M6,0 L6,12" fill="none" stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="1.5" />
+                        </marker>
+                         <marker id="crows_foot_zero_many" markerWidth="14" markerHeight="12" refX="14" refY="6" orient="auto">
+                            <path d="M2,0 L14,6 L2,12" fill="none" stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="1.5" />
+                            <circle cx="2" cy="6" r="2" fill={isDark ? '#334155' : 'white'} stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="1.5" />
+                        </marker>
+                         <marker id="crows_foot_zero_one" markerWidth="14" markerHeight="12" refX="14" refY="6" orient="auto">
+                            <path d="M14,0 L14,12" fill="none" stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="1.5" />
+                             <circle cx="4" cy="6" r="3" fill={isDark ? '#334155' : 'white'} stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth="1.5" />
+                        </marker>
                     </defs>
                     {connections.map(conn => {
                         const strokeColor = conn.color || (isDark ? '#94a3b8' : '#64748b');
@@ -510,21 +559,67 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                         if (conn.sourceNodeId) {
                             const sourceNode = nodes.find(n => n.id === conn.sourceNodeId);
                             if (sourceNode) {
-                                start = calculateIntersection(sourceNode ? getNodeCenter(sourceNode.id) : start, end, sourceNode);
+                                if (conn.anchors?.source?.side) {
+                                    start = getNodeAnchorPoint(conn.sourceNodeId, conn.anchors.source.side, conn.anchors.source.offset);
+                                } else if (!conn.anchors?.source) {
+                                    start = calculateIntersection(sourceNode ? getNodeCenter(sourceNode.id) : start, end, sourceNode);
+                                }
                             }
                         }
                         if (conn.targetNodeId) {
                             const targetNode = nodes.find(n => n.id === conn.targetNodeId);
                             if (targetNode) {
-                                end = calculateIntersection(targetNode ? getNodeCenter(targetNode.id) : end, start, targetNode);
+                                if (conn.anchors?.target?.side) {
+                                    end = getNodeAnchorPoint(conn.targetNodeId, conn.anchors.target.side, conn.anchors.target.offset);
+                                } else if (!conn.anchors?.target) {
+                                    end = calculateIntersection(targetNode ? getNodeCenter(targetNode.id) : end, start, targetNode);
+                                }
                             }
                         }
 
                         let d = '';
 
                         if (conn.lineStyle === 'orthogonal') {
-                            const midX = (start.x + end.x) / 2;
-                            d = `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
+                            const dx = Math.abs(start.x - end.x);
+                            const dy = Math.abs(start.y - end.y);
+                            const isVertical = dy > dx;
+                            
+                            const sourceSide = conn.anchors?.source?.side;
+                            const targetSide = conn.anchors?.target?.side;
+
+                            // Determine required start/end orientations
+                            // True = Vertical, False = Horizontal
+                            // If undefined (Auto), default to dominant delta direction? 
+                            // Actually, standard behavior:
+                            // If mostly vertical layout, use Vertical-First (VHV).
+                            // If mostly horizontal, use Horizontal-First (HVH).
+                            
+                            let startVert = isVertical;
+                            let endVert = isVertical;
+                            
+                            if (sourceSide) {
+                                startVert = (sourceSide === 'top' || sourceSide === 'bottom');
+                            }
+                            if (targetSide) {
+                                endVert = (targetSide === 'top' || targetSide === 'bottom');
+                            }
+                            
+                            // 4 Cases
+                            if (startVert && endVert) {
+                                // VHV: Down -> Over -> Down
+                                const midY = (start.y + end.y) / 2;
+                                d = `M ${start.x} ${start.y} L ${start.x} ${midY} L ${end.x} ${midY} L ${end.x} ${end.y}`;
+                            } else if (!startVert && !endVert) {
+                                // HVH: Over -> Down -> Over
+                                const midX = (start.x + end.x) / 2;
+                                d = `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
+                            } else if (!startVert && endVert) {
+                                // HV: Over -> Down
+                                d = `M ${start.x} ${start.y} L ${end.x} ${start.y} L ${end.x} ${end.y}`;
+                            } else if (startVert && !endVert) {
+                                // VH: Down -> Over
+                                d = `M ${start.x} ${start.y} L ${start.x} ${end.y} L ${end.x} ${end.y}`;
+                            }
                         } else if (conn.lineStyle === 'curved') {
                             if (conn.controlPoints && conn.controlPoints.length === 2) {
                                 d = `M ${start.x} ${start.y} C ${conn.controlPoints[0].x} ${conn.controlPoints[0].y}, ${conn.controlPoints[1].x} ${conn.controlPoints[1].y}, ${end.x} ${end.y}`;
@@ -583,8 +678,8 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                                     stroke={isSelected ? '#3b82f6' : strokeColor}
                                     strokeWidth={isSelected ? 3 : 2}
                                     fill="none"
-                                    markerStart={conn.sourceArrow ? `url(#arrowhead-start-${conn.id})` : undefined}
-                                    markerEnd={conn.targetArrow ? `url(#arrowhead-end-${conn.id})` : undefined}
+                                    markerStart={conn.sourceMarkerType ? `url(#${conn.sourceMarkerType})` : (conn.sourceArrow ? `url(#arrowhead-start-${conn.id})` : undefined)}
+                                    markerEnd={conn.targetMarkerType ? `url(#${conn.targetMarkerType})` : (conn.targetArrow ? `url(#arrowhead-end-${conn.id})` : undefined)}
                                 />
 
                                 {/* Markers definitions for this connection (to handle colors/selection) */}
@@ -793,15 +888,37 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                             }
                         }}
                     >
-                        {node.content}
-                        {/* Resize Handle */}
-                        {node.resizable && mode === 'select' && (
-                            <div
-                                className={`absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'bg-slate-600' : 'bg-stone-400'}`}
-                                onMouseDown={(e) => handleResizePointerDown(e, node.id, node.width || 100, node.height || 100)}
-                                onTouchStart={(e) => handleResizePointerDown(e, node.id, node.width || 100, node.height || 100)}
-                                style={{ borderTopLeftRadius: '4px' }}
-                            />
+                        {/* Render node content based on shape */}
+                        {node.shape === 'diamond' && (
+                             <div className={`w-full h-full flex items-center justify-center relative z-10 transition-colors pointer-events-none`}
+                             >
+                                 {/* Diamond shape using SVG to ensure borders look good */}
+                                 <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 overflow-visible pointer-events-auto">
+                                     <polygon points="50,0 100,50 50,100 0,50" 
+                                        fill={isDark ? '#1e293b' : 'white'} 
+                                        stroke={selectedIds.includes(node.id) ? '#3b82f6' : (isDark ? '#94a3b8' : '#cbd5e1')} 
+                                        strokeWidth={selectedIds.includes(node.id) ? 3 : 2} 
+                                     />
+                                 </svg>
+                                 
+                                <div className="transform scale-75 text-center flex items-center justify-center w-full h-full relative z-20 pointer-events-none">
+                                    {node.content}
+                                </div>
+                             </div>
+                        )}
+                        {(node.shape === 'rectangle' || node.shape === 'rounded-rectangle' || node.shape === 'ellipse' || node.shape === 'circle' || !node.shape) && (
+                            <>
+                                {node.content}
+                                {/* Resize Handle */}
+                                {node.resizable && mode === 'select' && (
+                                    <div
+                                        className={`absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'bg-slate-600' : 'bg-stone-400'}`}
+                                        onMouseDown={(e) => handleResizePointerDown(e, node.id, node.width || 100, node.height || 100)}
+                                        onTouchStart={(e) => handleResizePointerDown(e, node.id, node.width || 100, node.height || 100)}
+                                        style={{ borderTopLeftRadius: '4px' }}
+                                    />
+                                )}
+                            </>
                         )}
                     </div>
                 ))}
