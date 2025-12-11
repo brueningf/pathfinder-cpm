@@ -53,6 +53,7 @@ export interface Project {
     requirements?: Requirement[];
     taskCount: number;
     structuredAnalysis?: import('./structuredAnalysis').StructuredAnalysisData;
+    informationEngineering?: import('./ie').ProjectRepository;
 }
 
 export interface CPMResult {
