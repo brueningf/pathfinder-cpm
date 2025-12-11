@@ -172,6 +172,45 @@ export const DFDEditor: React.FC<DFDEditorProps> = ({
         setActiveTool('select');
     };
 
+    const handleConnectionControlPointMove = (id: string, index: number, x: number, y: number) => {
+        const conn = currentDFD.connections.find(c => c.id === id);
+        if (!conn) return;
+
+        let newControlPoints = conn.controlPoints ? [...conn.controlPoints] : [];
+
+        if (newControlPoints.length !== 2) {
+            const startNode = currentDFD.nodes.find(n => n.id === conn.sourceId);
+            const endNode = currentDFD.nodes.find(n => n.id === conn.targetId);
+            
+            if (!startNode || !endNode) return;
+
+            const getCenter = (n: typeof startNode) => ({
+                x: n.position.x + (n.size?.width || (n.type === 'process' ? 160 : n.type === 'data_store' ? 160 : 128)) / 2,
+                y: n.position.y + (n.size?.height || (n.type === 'process' ? 96 : n.type === 'data_store' ? 64 : 80)) / 2
+            });
+
+            const start = getCenter(startNode);
+            const end = getCenter(endNode);
+
+            const dx = Math.abs(end.x - start.x);
+            const offset = Math.max(dx * 0.5, 50);
+            
+            newControlPoints = [
+                { x: start.x + offset, y: start.y },
+                { x: end.x - offset, y: end.y }
+            ];
+        }
+
+        newControlPoints[index] = { x, y };
+
+        const updatedDFD = {
+            ...currentDFD,
+            connections: currentDFD.connections.map(c => c.id === id ? { ...c, controlPoints: newControlPoints } : c)
+        };
+        const updatedDFDs = dfds.map(d => d.id === currentDFD.id ? updatedDFD : d);
+        onUpdate(updatedDFDs, dictionary);
+    };
+
     const handleDelete = () => {
         if (selectedIds.length === 0) return;
 
@@ -340,7 +379,8 @@ export const DFDEditor: React.FC<DFDEditorProps> = ({
             sourceArrow: conn.sourceArrow,
             targetArrow: conn.targetArrow,
             sourceNodeId: conn.sourceId,
-            targetNodeId: conn.targetId
+            targetNodeId: conn.targetId,
+            controlPoints: conn.controlPoints
         };
     });
 
@@ -359,6 +399,7 @@ export const DFDEditor: React.FC<DFDEditorProps> = ({
             onNodeMove={handleMoveNode}
             onNodeResize={handleNodeResize}
             onConnectionCreate={handleConnectionCreate}
+            onConnectionControlPointMove={handleConnectionControlPointMove}
             onDelete={handleDelete}
             undo={undo}
             redo={redo}

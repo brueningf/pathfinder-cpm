@@ -175,12 +175,52 @@ export const STDEditor: React.FC<STDEditorProps> = ({
             sourceArrow: conn.sourceArrow,
             targetArrow: conn.targetArrow,
             sourceNodeId: conn.sourceId,
-            targetNodeId: conn.targetId
+            targetNodeId: conn.targetId,
+            controlPoints: conn.controlPoints
         };
     });
 
     const selectedNode = selectedIds.length === 1 ? currentSTD.nodes.find(n => n.id === selectedIds[0]) : null;
     const selectedConnection = selectedIds.length === 1 ? currentSTD.connections.find(c => c.id === selectedIds[0]) : null;
+
+    const handleConnectionControlPointMove = (id: string, index: number, x: number, y: number) => {
+        const conn = currentSTD.connections.find(c => c.id === id);
+        if (!conn) return;
+
+        let newControlPoints = conn.controlPoints ? [...conn.controlPoints] : [];
+
+        if (newControlPoints.length !== 2) {
+             const startNode = currentSTD.nodes.find(n => n.id === conn.sourceId);
+            const endNode = currentSTD.nodes.find(n => n.id === conn.targetId);
+            
+            if (!startNode || !endNode) return;
+
+            const getCenter = (n: typeof startNode) => ({
+                x: n.position.x + (n.size?.width || 120) / 2,
+                y: n.position.y + (n.size?.height || 120) / 2
+            });
+
+            const start = getCenter(startNode);
+            const end = getCenter(endNode);
+
+            const dx = Math.abs(end.x - start.x);
+            const offset = Math.max(dx * 0.5, 50);
+            
+            newControlPoints = [
+                { x: start.x + offset, y: start.y },
+                { x: end.x - offset, y: end.y }
+            ];
+        }
+
+        newControlPoints[index] = { x, y };
+
+        const updatedSTD = {
+            ...currentSTD,
+            connections: currentSTD.connections.map(c => c.id === id ? { ...c, controlPoints: newControlPoints } : c)
+        };
+        const updatedSTDs = stds.map(d => d.id === currentSTD.id ? updatedSTD : d);
+        onUpdate(updatedSTDs, dictionary);
+    };
 
     return (
         <BaseDiagramEditor
@@ -193,6 +233,7 @@ export const STDEditor: React.FC<STDEditorProps> = ({
             isDark={isDark}
             onNodeMove={handleMoveNode}
             onConnectionCreate={handleConnectionCreate}
+            onConnectionControlPointMove={handleConnectionControlPointMove}
             onDelete={handleDelete}
             undo={undo}
             redo={redo}

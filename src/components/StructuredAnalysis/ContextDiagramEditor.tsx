@@ -82,6 +82,44 @@ export const ContextDiagramEditor: React.FC<ContextDiagramEditorProps> = ({
         setActiveTool('select'); // Switch back to select after connecting
     };
 
+    const handleConnectionControlPointMove = (id: string, index: number, x: number, y: number) => {
+        const conn = data.connections.find(c => c.id === id);
+        if (!conn) return;
+
+        let newControlPoints = conn.controlPoints ? [...conn.controlPoints] : [];
+
+        // Initialize if missing (Standard Bezier Logic)
+        if (newControlPoints.length !== 2) {
+            const startNode = data.nodes.find(n => n.id === conn.sourceId);
+            const endNode = data.nodes.find(n => n.id === conn.targetId);
+            
+            if (!startNode || !endNode) return;
+
+             // Helper to get center (duplicated logic, but necessary here)
+            const getCenter = (n: typeof startNode) => ({
+                x: n.position.x + (n.size?.width || (n.type === 'process' ? 128 : n.type === 'boundary' ? 400 : 128)) / 2,
+                y: n.position.y + (n.size?.height || (n.type === 'process' ? 128 : n.type === 'boundary' ? 300 : 80)) / 2
+            });
+
+            const start = getCenter(startNode);
+            const end = getCenter(endNode);
+
+            const dx = Math.abs(end.x - start.x);
+            const offset = Math.max(dx * 0.5, 50);
+            
+            newControlPoints = [
+                { x: start.x + offset, y: start.y },
+                { x: end.x - offset, y: end.y }
+            ];
+        }
+
+        // Update the specific point
+        newControlPoints[index] = { x, y };
+
+        const updatedConnections = data.connections.map(c => c.id === id ? { ...c, controlPoints: newControlPoints } : c);
+        onUpdate({ ...data, connections: updatedConnections }, dictionary);
+    };
+
     const handleDelete = () => {
         if (selectedIds.length === 0) return;
 
@@ -232,7 +270,8 @@ export const ContextDiagramEditor: React.FC<ContextDiagramEditorProps> = ({
             targetArrow: conn.targetArrow,
             lineStyle: conn.lineStyle,
             textPosition: conn.textPosition,
-            anchors: conn.anchors
+            anchors: conn.anchors,
+            controlPoints: conn.controlPoints
         };
     });
 
@@ -251,6 +290,7 @@ export const ContextDiagramEditor: React.FC<ContextDiagramEditorProps> = ({
             onNodeMove={handleMoveNode}
             onNodeResize={handleNodeResize}
             onConnectionCreate={handleConnectionCreate}
+            onConnectionControlPointMove={handleConnectionControlPointMove}
             onDelete={handleDelete}
             // Undo/Redo props will be passed from parent, but I need to add them to interface first
             // Actually, I should update the interface above first.

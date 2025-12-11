@@ -37,6 +37,7 @@ export interface DiagramConnection {
         source?: { x: number; y: number; side: 'top' | 'bottom' | 'left' | 'right' };
         target?: { x: number; y: number; side: 'top' | 'bottom' | 'left' | 'right' };
     };
+    controlPoints?: Point[]; // Array of 1 or 2 points for Bezier controls
 }
 
 export interface DataDictionaryEntry {

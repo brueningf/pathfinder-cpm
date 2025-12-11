@@ -30,6 +30,7 @@ export interface CanvasConnection {
     };
     sourceNodeId?: string;
     targetNodeId?: string;
+    controlPoints?: { x: number; y: number }[];
 }
 
 export interface DiagramCanvasProps {
@@ -38,6 +39,7 @@ export interface DiagramCanvasProps {
     onNodeMove: (id: string, x: number, y: number) => void;
     onNodeResize?: (id: string, width: number, height: number) => void;
     onConnectionCreate?: (sourceId: string, targetId: string) => void;
+    onConnectionControlPointMove?: (id: string, index: number, x: number, y: number) => void;
     onConnectionClick?: (id: string, e: React.MouseEvent) => void;
     onBackgroundClick?: (e: React.MouseEvent) => void;
     selectedIds?: string[];
@@ -182,6 +184,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
     onNodeMove,
     onNodeResize,
     onConnectionCreate,
+    onConnectionControlPointMove,
     onConnectionClick,
     onBackgroundClick,
     selectedIds = [],
@@ -210,6 +213,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
     const [isDrawingConnection, setIsDrawingConnection] = useState(false);
     const [connectionStartNodeId, setConnectionStartNodeId] = useState<string | null>(null);
     const [connectionEndPos, setConnectionEndPos] = useState<{ x: number, y: number } | null>(null);
+    const [draggedControlPoint, setDraggedControlPoint] = useState<{ connectionId: string, index: number } | null>(null);
 
     // Selection Box state
     const [isSelecting, setIsSelecting] = useState(false);
@@ -282,6 +286,13 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
 
         if (isDraggingCanvas) {
             onPanChange({ x: pos.x - dragStart.x, y: pos.y - dragStart.y });
+        } else if (draggedControlPoint) {
+           const rect = canvasRef.current?.getBoundingClientRect();
+           if (rect) {
+               const x = (pos.x - rect.left - pan.x) / zoom;
+               const y = (pos.y - rect.top - pan.y) / zoom;
+               onConnectionControlPointMove?.(draggedControlPoint.connectionId, draggedControlPoint.index, x, y);
+           }
         } else if (isResizing && resizingNodeId && initialSize) {
             const dx = (pos.x - dragStart.x) / zoom;
             const dy = (pos.y - dragStart.y) / zoom;
@@ -366,7 +377,13 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         setInitialNodePos(null);
         setIsResizing(false);
         setResizingNodeId(null);
+        setIsDraggingCanvas(false);
+        setDraggedNodeId(null);
+        setInitialNodePos(null);
+        setIsResizing(false);
+        setResizingNodeId(null);
         setInitialSize(null);
+        setDraggedControlPoint(null);
     };
 
     const handleNodePointerDown = (e: React.MouseEvent | React.TouchEvent, id: string, x: number, y: number) => {
@@ -509,9 +526,13 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                             const midX = (start.x + end.x) / 2;
                             d = `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
                         } else if (conn.lineStyle === 'curved') {
-                            const dx = Math.abs(end.x - start.x);
-                            const controlPointOffset = Math.max(dx * 0.5, 50);
-                            d = `M ${start.x} ${start.y} C ${start.x + controlPointOffset} ${start.y}, ${end.x - controlPointOffset} ${end.y}, ${end.x} ${end.y}`;
+                            if (conn.controlPoints && conn.controlPoints.length === 2) {
+                                d = `M ${start.x} ${start.y} C ${conn.controlPoints[0].x} ${conn.controlPoints[0].y}, ${conn.controlPoints[1].x} ${conn.controlPoints[1].y}, ${end.x} ${end.y}`;
+                            } else {
+                                const dx = Math.abs(end.x - start.x);
+                                const controlPointOffset = Math.max(dx * 0.5, 50);
+                                d = `M ${start.x} ${start.y} C ${start.x + controlPointOffset} ${start.y}, ${end.x - controlPointOffset} ${end.y}, ${end.x} ${end.y}`;
+                            }
                         } else {
                             d = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
                         }
@@ -538,6 +559,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                                     strokeWidth="15"
                                     fill="none"
                                     pointerEvents="stroke"
+                                    onMouseDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         if (onSelectionChange) {
@@ -603,6 +625,77 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
                                             {conn.label}
                                         </div>
                                     </foreignObject>
+                                )}
+
+                                {/* Control Points (Handles) - ONLY for Selected Curved connections */}
+                                {isSelected && conn.lineStyle === 'curved' && (
+                                    <>
+                                        {/* Guide lines (optional, but helpful) */}
+                                        {conn.controlPoints && conn.controlPoints.length === 2 ? (
+                                            <>
+                                                <line x1={start.x} y1={start.y} x2={conn.controlPoints[0].x} y2={conn.controlPoints[0].y} stroke={isDark ? '#cbd5e1' : '#64748b'} strokeWidth="1" strokeDasharray="2,2" />
+                                                <line x1={end.x} y1={end.y} x2={conn.controlPoints[1].x} y2={conn.controlPoints[1].y} stroke={isDark ? '#cbd5e1' : '#64748b'} strokeWidth="1" strokeDasharray="2,2" />
+                                                
+                                                {conn.controlPoints.map((cp, idx) => (
+                                                    <circle
+                                                        key={`cp-${idx}`}
+                                                        cx={cp.x}
+                                                        cy={cp.y}
+                                                        r="4"
+                                                        fill="#3b82f6"
+                                                        stroke="white"
+                                                        strokeWidth="2"
+                                                        style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                                        onMouseDown={(e) => {
+                                                            e.stopPropagation();
+                                                            setDraggedControlPoint({ connectionId: conn.id, index: idx });
+                                                        }}
+                                                        onTouchStart={(e) => {
+                                                            e.stopPropagation();
+                                                            setDraggedControlPoint({ connectionId: conn.id, index: idx });
+                                                        }}
+                                                    />
+                                                ))}
+                                            </>
+                                        ) : (
+                                            /* If selected but no control points start saved yet, show default phantom handles? 
+                                               Actually, for now we rely on the parent to initialize control points OR we can calculate defaults here just for display
+                                               and onDrag init them. But simpler is: The parent ensures control points exist or we calc them momentarily.
+                                               Let's calc default positions for handles if missing.
+                                            */
+                                            (() => {
+                                                const dx = Math.abs(end.x - start.x);
+                                                const offset = Math.max(dx * 0.5, 50);
+                                                const cp1 = { x: start.x + offset, y: start.y };
+                                                const cp2 = { x: end.x - offset, y: end.y };
+                                                const cps = [cp1, cp2];
+                                                
+                                                return cps.map((cp, idx) => (
+                                                    <circle
+                                                        key={`cp-phantom-${idx}`}
+                                                        cx={cp.x}
+                                                        cy={cp.y}
+                                                        r="4"
+                                                        fill="#94a3b8" // Grey for phantom
+                                                        stroke="white"
+                                                        strokeWidth="2"
+                                                        style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                                                        onMouseDown={(e) => {
+                                                            e.stopPropagation();
+                                                            // When dragging a phantom, we are effectively creating the points
+                                                            // Logic needs to handle this. For now, rely on standard drag state
+                                                            // The parent callback will receive this update and create the array
+                                                            setDraggedControlPoint({ connectionId: conn.id, index: idx });
+                                                        }}
+                                                         onTouchStart={(e) => {
+                                                            e.stopPropagation();
+                                                            setDraggedControlPoint({ connectionId: conn.id, index: idx });
+                                                        }}
+                                                    />
+                                                ));
+                                            })()
+                                        )}
+                                    </>
                                 )}
                             </g>
                         );

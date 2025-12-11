@@ -18,6 +18,7 @@ export interface BaseDiagramEditorProps {
     onNodeMove: (id: string, x: number, y: number) => void;
     onNodeResize?: (id: string, width: number, height: number) => void;
     onConnectionCreate?: (sourceId: string, targetId: string) => void;
+    onConnectionControlPointMove?: (id: string, index: number, x: number, y: number) => void;
     onDelete?: () => void;
 
     // Undo/Redo
@@ -43,6 +44,7 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
     onNodeMove,
     onNodeResize,
     onConnectionCreate,
+    onConnectionControlPointMove,
     onDelete,
     undo,
     redo,
@@ -229,6 +231,7 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
                     onNodeMove={onNodeMove}
                     onNodeResize={onNodeResize}
                     onConnectionCreate={onConnectionCreate}
+                    onConnectionControlPointMove={onConnectionControlPointMove}
                     onSelectionChange={onSelectionChange}
                     selectedIds={selectedIds}
                     isDark={isDark}
