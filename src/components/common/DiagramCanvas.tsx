@@ -10,7 +10,7 @@ export interface CanvasNode {
     content: React.ReactNode;
     resizable?: boolean;
     pointerEvents?: React.CSSProperties['pointerEvents'];
-    shape?: 'rectangle' | 'circle' | 'rounded-rectangle';
+    shape?: 'rectangle' | 'circle' | 'rounded-rectangle' | 'ellipse';
 }
 
 export interface CanvasConnection {
@@ -157,7 +157,21 @@ const calculateIntersection = (
             }
         }
 
-        // Fallback
+        if (node.shape === 'ellipse') {
+            // Ellipse intersection: Ray from center1 to center2 intersection with (x-cx)^2/rx^2 + (y-cy)^2/ry^2 = 1
+            const rx = w / 2;
+            const ry = h / 2;
+            if (rx === 0 || ry === 0) return center1;
+
+            const t = 1 / Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
+            
+            return {
+                x: center1.x + dx * t,
+                y: center1.y + dy * t
+            };
+        }
+
+        // Fallback for rectangle/rounded-rectangle
         return center1;
     }
 };

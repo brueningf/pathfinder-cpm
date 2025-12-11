@@ -75,7 +75,8 @@ export const ContextDiagramEditor: React.FC<ContextDiagramEditorProps> = ({
             id: crypto.randomUUID(),
             sourceId,
             targetId,
-            label: 'Data Flow'
+            label: 'Data Flow',
+            targetArrow: true
         };
         onUpdate({ ...data, connections: [...data.connections, newConnection] }, dictionary);
         setActiveTool('select'); // Switch back to select after connecting
@@ -111,7 +112,7 @@ export const ContextDiagramEditor: React.FC<ContextDiagramEditorProps> = ({
             y: node.position.y,
             width,
             height,
-            shape: node.type === 'process' ? 'rounded-rectangle' : 'rectangle',
+            shape: node.type === 'process' ? 'ellipse' : 'rectangle',
             resizable: isBoundary,
             content: isBoundary ? (
                 <div className="relative w-full h-full" data-diagram-ignore="true">
@@ -225,8 +226,13 @@ export const ContextDiagramEditor: React.FC<ContextDiagramEditorProps> = ({
             start,
             end,
             label: conn.label,
-            sourceNodeId: conn.sourceId, // Added sourceNodeId
-            targetNodeId: conn.targetId, // Added targetNodeId
+            sourceNodeId: conn.sourceId,
+            targetNodeId: conn.targetId,
+            sourceArrow: conn.sourceArrow,
+            targetArrow: conn.targetArrow,
+            lineStyle: conn.lineStyle,
+            textPosition: conn.textPosition,
+            anchors: conn.anchors
         };
     });
 
