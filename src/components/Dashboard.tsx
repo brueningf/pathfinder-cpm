@@ -13,13 +13,14 @@ interface DashboardProps {
     onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onOpenRequirements: (id: string) => void;
     onOpenStructuredAnalysis: (id: string) => void;
+    onOpenInformationEngineering: (id: string) => void;
     onLoadExample?: () => void;
     theme: 'dark' | 'light';
     toggleTheme: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
-    onOpenProject, onDeleteProject, projects, onCreateProject, onExportData, onImportData, onOpenRequirements, onOpenStructuredAnalysis, onLoadExample, theme, toggleTheme
+    onOpenProject, onDeleteProject, projects, onCreateProject, onExportData, onImportData, onOpenRequirements, onOpenStructuredAnalysis, onOpenInformationEngineering, onLoadExample, theme, toggleTheme
 }) => {
     const [newProjectName, setNewProjectName] = useState('');
 
@@ -135,6 +136,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                         Analysis
                                     </button>
                                 </div>
+                                <button onClick={() => onOpenInformationEngineering(p.id)} className={`btn w-full ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 border border-slate-700' : 'bg-stone-50 hover:bg-stone-100 text-blue-600 border border-stone-200'}`}>
+                                    ✨ Information Engineering
+                                </button>
                                 <button onClick={() => onOpenProject(p.id)} className={`btn w-full flex items-center justify-center gap-2 ${isDark ? 'bg-slate-100 hover:bg-white text-slate-900 border-none' : 'bg-stone-800 hover:bg-stone-900 text-white border-none'}`}>
                                     <Activity size={16} /> CPM
                                 </button>

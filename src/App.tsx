@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { Editor } from './components/Editor';
 import { Requirements } from './components/Requirements';
 import { StructuredAnalysis } from './components/StructuredAnalysis/StructuredAnalysis';
+import { IEOrchestrator } from './components/InformationEngineering/IEOrchestrator';
 import { Project, Task, Requirement } from './types';
 
 const NEW_PROJECT_TEMPLATE: Task[] = [
@@ -74,6 +75,43 @@ const EXAMPLE_PROJECT: Project = {
             { id: 'de2', name: 'User Token', type: 'data_element', definition: 'JWT String', relatedDiagramIds: ['level0'] }
         ],
         stds: []
+    },
+    informationEngineering: {
+        id: 'ie-example',
+        name: 'Mobile App IE',
+        currentStep: 1,
+        entities: {
+            'e1': { id: 'e1', name: 'Customer', attributes: [], position: { x: 100, y: 100 }, size: { width: 140, height: 70 } },
+            'e2': { id: 'e2', name: 'Order', attributes: [], position: { x: 500, y: 100 }, size: { width: 140, height: 70 } },
+            'e3': { id: 'e3', name: 'Inventory', attributes: [], position: { x: 300, y: 300 }, size: { width: 140, height: 70 } }
+        },
+        relationships: {
+            'r1': { 
+                id: 'r1', 
+                sourceEntityId: 'e1', 
+                targetEntityId: 'e2', 
+                sourceCardinality: 'one_one', 
+                targetCardinality: 'zero_many', 
+                label: 'places', 
+                position: { x: 300, y: 100 },
+                controlPoints: []
+            }
+        },
+        processes: {
+            'p1': { id: 'p1', name: 'Manage Orders', type: 'function', level: 0, position: { x: 400, y: 50 }, size: { width: 160, height: 60 } },
+            'p2': { id: 'p2', name: 'Receive Order', type: 'process', parentId: 'p1', level: 1, position: { x: 100, y: 250 }, size: { width: 140, height: 60 } },
+            'p3': { id: 'p3', name: 'Validate Stock', type: 'process', parentId: 'p1', level: 1, position: { x: 400, y: 250 }, size: { width: 140, height: 60 } },
+            'p4': { id: 'p4', name: 'Ship Items', type: 'process', parentId: 'p1', level: 1, position: { x: 700, y: 250 }, size: { width: 140, height: 60 } }
+        },
+        processDependencies: {
+            'd1': { id: 'd1', sourceProcessId: 'p2', targetProcessId: 'p3', type: 'sequence' },
+            'd2': { id: 'd2', sourceProcessId: 'p3', targetProcessId: 'p4', type: 'sequence' }
+        },
+        dataFlows: {
+            'df1': { id: 'df1', processDependencyId: 'd1', entityId: 'e2', accessType: 'create' }, // Receive creates Order
+            'df2': { id: 'df2', processDependencyId: 'd1', entityId: 'e1', accessType: 'update' }, // Receive updates Customer?
+            'df3': { id: 'df3', processDependencyId: 'd2', entityId: 'e3', accessType: 'read' },   // Validate reads Inventory
+        }
     }
 };
 
@@ -86,16 +124,22 @@ export default function App() {
         // should be removed when example project is removed. TODO
         // This fixes the issue where old data in localStorage might be missing the new fields
         initialProjects = initialProjects.map((p: Project) => {
-            if (p.id === EXAMPLE_PROJECT.id && !p.structuredAnalysis) {
-                return { ...p, structuredAnalysis: EXAMPLE_PROJECT.structuredAnalysis };
+            let updated = { ...p };
+            if (p.id === EXAMPLE_PROJECT.id) {
+                if (!p.structuredAnalysis) {
+                    updated = { ...updated, structuredAnalysis: EXAMPLE_PROJECT.structuredAnalysis };
+                }
+                if (!p.informationEngineering) {
+                    updated = { ...updated, informationEngineering: EXAMPLE_PROJECT.informationEngineering };
+                }
             }
-            return p;
+            return updated;
         });
 
         return initialProjects;
     });
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-    const [view, setView] = useState<'dashboard' | 'editor' | 'requirements' | 'structured_analysis'>('dashboard');
+    const [view, setView] = useState<'dashboard' | 'editor' | 'requirements' | 'structured_analysis' | 'information_engineering'>('dashboard');
 
     // Save to LocalStorage whenever projects change
     useEffect(() => {
@@ -273,6 +317,23 @@ export default function App() {
         );
     }
 
+    if (view === 'information_engineering' && activeProject) {
+        return (
+            <div className="h-screen w-full relative">
+                <IEOrchestrator 
+                    project={activeProject}
+                    onSave={(ieData) => {
+                        const updatedProjects = projects.map(p => 
+                            p.id === activeProject.id ? { ...p, informationEngineering: ieData, updatedAt: new Date().toISOString() } : p
+                        );
+                        setProjects(updatedProjects);
+                    }}
+                    onBack={handleBack}
+                />
+            </div>
+        );
+    }
+
     const handleLoadExample = () => {
         if (window.confirm("Load example project? This will add 'Mobile App Launch' to your projects.")) {
             const exampleWithNewId = { ...EXAMPLE_PROJECT, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
@@ -286,6 +347,7 @@ export default function App() {
         onOpenProject={handleOpenProject}
         onOpenRequirements={(id) => { setActiveProjectId(id); setView('requirements'); }}
         onOpenStructuredAnalysis={(id) => { setActiveProjectId(id); setView('structured_analysis'); }}
+        onOpenInformationEngineering={(id) => { setActiveProjectId(id); setView('information_engineering'); }}
         onDeleteProject={handleDeleteProject}
         onExportData={handleExportData}
         onImportData={handleImportData}
