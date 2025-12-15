@@ -13,10 +13,11 @@ const NEW_PROJECT_TEMPLATE: Task[] = [
 
 const EXAMPLE_PROJECT: Project = {
     id: 'example-mobile-app',
-    name: 'Mobile App Launch 🚀',
+    name: 'Example: ATM System (Process-Oriented)',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     taskCount: 12,
+    designTechnique: 'process-oriented',
     data: [
         { id: 'A', name: 'Market Research', duration: 5, predecessors: [], type: 'start' },
         { id: 'B', name: 'Define Requirements', duration: 3, predecessors: ['A'], type: 'task' },
@@ -114,6 +115,15 @@ const EXAMPLE_PROJECT: Project = {
         }
     }
 };
+
+const DATA_ORIENTED_EXAMPLE: Project = { ...EXAMPLE_PROJECT,
+    id: 'example-data-store',
+    name: 'Example: Online Store (Data-Oriented)', 
+    designTechnique: 'data-oriented',
+    informationEngineering: EXAMPLE_PROJECT.informationEngineering, // Use the IE data but ensure it's displayed
+    structuredAnalysis: { ...EXAMPLE_PROJECT.structuredAnalysis, contextDiagram: { id: 'empty', nodes: [], connections: [] }, dfds: [], stds: [] } // Empty SA
+};
+
 
 export default function App() {
     const [projects, setProjects] = useState<Project[]>(() => {
@@ -335,9 +345,10 @@ export default function App() {
     }
 
     const handleLoadExample = () => {
-        if (window.confirm("Load example project? This will add 'Mobile App Launch' to your projects.")) {
-            const exampleWithNewId = { ...EXAMPLE_PROJECT, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-            setProjects([exampleWithNewId, ...projects]);
+        if (window.confirm("Load example projects? This will add 'ATM System' and 'Online Store' to your projects.")) {
+            const processExample = { ...EXAMPLE_PROJECT, id: crypto.randomUUID(), name: 'Example: ATM System', designTechnique: 'process-oriented' as const, createdAt: new Date().toISOString() };
+            const dataExample = { ...DATA_ORIENTED_EXAMPLE, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+            setProjects([processExample, dataExample, ...projects]);
         }
     };
 

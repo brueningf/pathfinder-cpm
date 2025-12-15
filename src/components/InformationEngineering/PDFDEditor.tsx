@@ -3,6 +3,8 @@ import { BaseDiagramEditor } from '../StructuredAnalysis/BaseDiagramEditor';
 import { CanvasNode, CanvasConnection } from '../common/DiagramCanvas';
 import { ProcessNode, ProcessDependency, Entity, DataFlowRef, TriggerNode } from '../../types/ie';
 import { Database, ArrowRight, Zap } from 'lucide-react';
+import { AnchorControls } from '../common/PropertiesPanel/AnchorControls';
+import { NodeProperties } from '../common/PropertiesPanel/NodeProperties';
 
 interface PDFDEditorProps {
     processes: ProcessNode[];
@@ -350,97 +352,81 @@ export const PDFDEditor: React.FC<PDFDEditorProps> = ({
     };
 
     // --- Properties Panel Helpers ---
-    const renderAnchorControls = (type: 'dependency' | 'dataFlow', id: string, label: string, sideKey: string, offsetKey: string) => {
-        const item = type === 'dependency' ? dependencies.find(d => d.id === id) : dataFlows.find(f => f.id === id);
-        if (!item) return null;
-        
-        const update = (updates: any) => {
-            if (type === 'dependency') onDependenciesChange(dependencies.map(d => d.id === id ? { ...d, ...updates } : d));
-            else onDataFlowsChange(dataFlows.map(f => f.id === id ? { ...f, ...updates } : f));
-        };
-        // Reuse JSX from before... (abbreviated for tool limits)
-        return (
-             <div className="border-t pt-3 mt-3">
-                <label className="text-xs font-bold uppercase text-slate-500 block mb-2">{label} Anchor</label>
-                <div className="space-y-2">
-                    <select 
-                        className="w-full p-1.5 border rounded text-xs bg-slate-50 text-slate-700"
-                        value={(item as any)[sideKey] || ''}
-                        onChange={(e) => update({ [sideKey]: e.target.value || undefined })}
-                    >
-                        <option value="">Auto</option>
-                        <option value="top">Top</option>
-                        <option value="bottom">Bottom</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                    </select>
-                    {(item as any)[sideKey] && (
-                        <input 
-                            type="range" min="0" max="1" step="0.05"
-                            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                            value={(item as any)[offsetKey] ?? 0.5}
-                            onChange={(e) => update({ [offsetKey]: parseFloat(e.target.value) })}
-                        />
-                    )}
-                </div>
-            </div>
-        );
-    };
-
+    // renderAnchorControls removed - using shared component directly or refactored below
+    
     const renderPropertiesPanel = () => {
         if (selectedIds.length !== 1) return null;
         const id = selectedIds[0];
         const dep = dependencies.find(d => d.id === id);
         const flow = dataFlows.find(f => f.id === id);
         const trig = triggers.find(t => t.id === id);
+        const proc = processes.find(p => p.id === id);
+        const entity = entities.find(e => e.id === id);
+
+        if (proc) {
+            return (
+                <div className="h-full w-full flex flex-col gap-4">
+                     <NodeProperties 
+                        name={proc.name}
+                        description={proc.description}
+                        onNameChange={(name) => onProcessesChange(processes.map(p => p.id === id ? { ...p, name } : p))}
+                        onDescriptionChange={(description) => onProcessesChange(processes.map(p => p.id === id ? { ...p, description } : p))}
+                        typeLabel="Process"
+                        id={proc.id}
+                     />
+                </div>
+            )
+        }
+        
+        if (entity) {
+            return (
+                <div className="h-full w-full flex flex-col gap-4">
+                     <NodeProperties 
+                        name={entity.name}
+                        description={entity.description}
+                        onNameChange={(name) => onEntitiesChange(entities.map(e => e.id === id ? { ...e, name } : e))}
+                        onDescriptionChange={(description) => onEntitiesChange(entities.map(e => e.id === id ? { ...e, description } : e))}
+                        typeLabel="Entity"
+                        id={entity.id}
+                     />
+                </div>
+            )
+        }
 
         if (trig) {
              return (
                  <div className="h-full w-full flex flex-col gap-4">
-                     <div className="pb-2 border-b">
-                        <h3 className="font-bold text-sm text-slate-800">Trigger Event</h3>
-                        <div className="text-xs text-slate-500 font-mono mt-1" title={id}>{id.slice(0, 8)}...</div>
-                     </div>
-                     
-                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Name</label>
-                        <input 
-                            className="w-full p-2 border rounded text-sm bg-white focus:border-blue-500 outline-none transition-colors"
-                            value={trig.name}
-                            onChange={e => onTriggersChange(triggers.map(t => t.id === id ? { ...t, name: e.target.value } : t))}
-                            placeholder="Event Name"
-                        />
-                     </div>
-
-                     <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Description</label>
-                        <textarea 
-                            className="w-full p-2 border rounded text-sm bg-white h-32 resize-none focus:border-blue-500 outline-none transition-colors"
-                            value={trig.description || ''}
-                            onChange={e => onTriggersChange(triggers.map(t => t.id === id ? { ...t, description: e.target.value } : t))}
-                            placeholder="Describe the condition or event that triggers this process..."
-                        />
-                     </div>
-
-                     <div className="mt-auto pt-4 border-t">
-                        <button onClick={() => {
+                     <NodeProperties 
+                        name={trig.name}
+                        description={trig.description}
+                        onNameChange={(name) => onTriggersChange(triggers.map(t => t.id === id ? { ...t, name } : t))}
+                        onDescriptionChange={(description) => onTriggersChange(triggers.map(t => t.id === id ? { ...t, description } : t))}
+                        onDelete={() => {
                             onTriggersChange(triggers.filter(t => t.id !== id));
                             setSelectedIds([]);
-                        }} className="w-full py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded text-xs font-medium transition-colors flex items-center justify-center gap-2">
-                            <span className="w-4 h-4 rounded-full border border-red-400 flex items-center justify-center text-[10px]">✕</span>
-                            Delete Trigger
-                        </button>
-                     </div>
+                        }}
+                        typeLabel="Trigger Event"
+                        id={trig.id}
+                     />
                  </div>
              );
         }
 
         if (!dep && !flow) return null;
 
+        const updateItem = (updates: any) => {
+            if (dep) onDependenciesChange(dependencies.map(d => d.id === id ? { ...d, ...updates } : d));
+            if (flow) onDataFlowsChange(dataFlows.map(f => f.id === id ? { ...f, ...updates } : f));
+        };
+
+        const currentItem = dep || flow;
+        if (!currentItem) return null;
+
         return (
             <div className="h-full w-full flex flex-col gap-4 overflow-y-auto">
                 <div className="pb-2 border-b">
                     <h3 className="font-bold text-sm text-slate-800">{dep ? 'Control Flow' : 'Data Flow'}</h3>
+                    <div className="text-xs text-slate-500 font-mono mt-1" title={id}>{id.slice(0, 8)}...</div>
                 </div>
                  {flow && (
                     <div>
@@ -478,8 +464,20 @@ export const PDFDEditor: React.FC<PDFDEditorProps> = ({
                         ))}
                     </div>
                 </div>
-                {renderAnchorControls(dep ? 'dependency' : 'dataFlow', id, "Source", "sourceAnchorSide", "sourceAnchorOffset")}
-                {renderAnchorControls(dep ? 'dependency' : 'dataFlow', id, "Target", "targetAnchorSide", "targetAnchorOffset")}
+                <AnchorControls 
+                    label="Source" 
+                    sideValue={currentItem.sourceAnchorSide} 
+                    offsetValue={currentItem.sourceAnchorOffset}
+                    onSideChange={(val) => updateItem({ sourceAnchorSide: val })}
+                    onOffsetChange={(val) => updateItem({ sourceAnchorOffset: val })}
+                />
+                <AnchorControls 
+                    label="Target" 
+                    sideValue={currentItem.targetAnchorSide} 
+                    offsetValue={currentItem.targetAnchorOffset}
+                    onSideChange={(val) => updateItem({ targetAnchorSide: val })}
+                    onOffsetChange={(val) => updateItem({ targetAnchorOffset: val })}
+                />
             </div>
         );
     };

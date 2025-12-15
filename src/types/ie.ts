@@ -1,4 +1,4 @@
-import { Point } from './structuredAnalysis';
+import { Point, Size } from './diagram';
 
 // --- Step 1: Data Modeling (ERD) ---
 
@@ -22,7 +22,7 @@ export interface Entity {
     isWeak?: boolean; // Representations: Double rectangle
     // Visual properties for the diagram (View State) - persisted here for simplicity
     position: Point;
-    size: { width: number; height: number };
+    size: Size;
 }
 
 export type Cardinality = 'zero_one' | 'one_one' | 'zero_many' | 'one_many';
@@ -54,7 +54,7 @@ export interface ProcessNode {
     level: number; // 0=Root, 1=System, 2=Subsystem...
     // For FDD Diagram layout
     position: Point; 
-    size: { width: number; height: number };
+    size: Size;
 }
 
 // --- Step 3: Process Dependency (PDD) ---

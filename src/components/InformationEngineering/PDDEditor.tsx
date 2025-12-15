@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BaseDiagramEditor } from '../StructuredAnalysis/BaseDiagramEditor';
 import { CanvasNode, CanvasConnection } from '../common/DiagramCanvas';
 import { ProcessNode, ProcessDependency } from '../../types/ie';
+import { AnchorControls } from '../common/PropertiesPanel/AnchorControls';
 
 interface PDDEditorProps {
     processes: ProcessNode[];
@@ -94,44 +95,7 @@ export const PDDEditor: React.FC<PDDEditorProps> = ({ processes, dependencies, o
         onDependenciesChange([...dependencies, newDep]);
     };
     
-    // Helper for anchor controls
-    const renderAnchorControls = (label: string, sideKey: 'sourceAnchorSide' | 'targetAnchorSide', offsetKey: 'sourceAnchorOffset' | 'targetAnchorOffset') => {
-        const dep = dependencies.find(d => d.id === selectedIds[0]);
-        if (!dep) return null;
-        
-        return (
-            <div className="border-t pt-2 mt-2">
-                <label className="text-xs font-bold uppercase opacity-50 block mb-1">{label} Anchor</label>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                    <select 
-                        className="p-1 border rounded text-xs"
-                        value={dep[sideKey] || ''}
-                        onChange={(e) => {
-                            const val = e.target.value || undefined; // Empty = Auto
-                            onDependenciesChange(dependencies.map(d => d.id === selectedIds[0] ? { ...d, [sideKey]: val } : d));
-                        }}
-                    >
-                        <option value="">Auto</option>
-                        <option value="top">Top</option>
-                        <option value="bottom">Bottom</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                    </select>
-                    {dep[sideKey] && (
-                        <input 
-                            type="range" min="0" max="1" step="0.05"
-                            className="w-full"
-                            value={dep[offsetKey] ?? 0.5}
-                            onChange={(e) => {
-                                onDependenciesChange(dependencies.map(d => d.id === selectedIds[0] ? { ...d, [offsetKey]: parseFloat(e.target.value) } : d));
-                            }}
-                            title={`Offset: ${Math.round((dep[offsetKey] ?? 0.5) * 100)}%`}
-                        />
-                    )}
-                </div>
-            </div>
-        );
-    };
+    // renderAnchorControls removed
 
     return (
         <BaseDiagramEditor
@@ -179,8 +143,20 @@ export const PDDEditor: React.FC<PDDEditorProps> = ({ processes, dependencies, o
                              </select>
                          </div>
                          
-                         {renderAnchorControls("Source (Start)", "sourceAnchorSide", "sourceAnchorOffset")}
-                         {renderAnchorControls("Target (End)", "targetAnchorSide", "targetAnchorOffset")}
+                         <AnchorControls 
+                            label="Source"
+                            sideValue={dependencies.find(d => d.id === selectedIds[0])?.sourceAnchorSide}
+                            offsetValue={dependencies.find(d => d.id === selectedIds[0])?.sourceAnchorOffset}
+                            onSideChange={(val) => onDependenciesChange(dependencies.map(d => d.id === selectedIds[0] ? { ...d, sourceAnchorSide: val as any } : d))}
+                            onOffsetChange={(val) => onDependenciesChange(dependencies.map(d => d.id === selectedIds[0] ? { ...d, sourceAnchorOffset: val } : d))}
+                         />
+                         <AnchorControls 
+                            label="Target"
+                            sideValue={dependencies.find(d => d.id === selectedIds[0])?.targetAnchorSide}
+                            offsetValue={dependencies.find(d => d.id === selectedIds[0])?.targetAnchorOffset}
+                            onSideChange={(val) => onDependenciesChange(dependencies.map(d => d.id === selectedIds[0] ? { ...d, targetAnchorSide: val as any } : d))}
+                            onOffsetChange={(val) => onDependenciesChange(dependencies.map(d => d.id === selectedIds[0] ? { ...d, targetAnchorOffset: val } : d))}
+                         />
                     </div>
                 ) : undefined
             }

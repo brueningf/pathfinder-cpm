@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { DiagramCanvas, CanvasNode, CanvasConnection } from '../common/DiagramCanvas';
-import { MousePointer, Link, Move, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { MousePointer, Link, Move, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { calculateFitToView, getDiagramBounds } from '../../utils/diagramUtils';
 
 export interface BaseDiagramEditorProps {
     // Data
@@ -56,7 +57,33 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
 }) => {
     const [zoom, setZoom] = React.useState(1);
     const [pan, setPan] = React.useState({ x: 0, y: 0 });
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const hasFittedRef = React.useRef(false);
 
+    // Auto-Fit Function
+    const fitToContent = React.useCallback(() => {
+        if (!containerRef.current || nodes.length === 0) return;
+        
+        const bounds = getDiagramBounds(nodes);
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        
+        const viewState = calculateFitToView(bounds, width, height, 50);
+        setZoom(viewState.zoom);
+        setPan(viewState.pan);
+    }, [nodes]);
+
+    // Initial Fit on Mount (wait for resize observer practically, or just generic timeout/effect)
+    useEffect(() => {
+        if (!hasFittedRef.current && nodes.length > 0 && containerRef.current) {
+            // Small delay to ensure container has size
+            const timer = setTimeout(() => {
+                fitToContent();
+                hasFittedRef.current = true;
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [nodes, fitToContent]);
+    
     // Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -203,11 +230,11 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
                                 <ZoomOut size={20} />
                             </button>
                             <button
-                                onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }}
+                                onClick={fitToContent}
                                 className={`p-2 rounded transition-colors ${isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100'}`}
-                                title="Reset View"
+                                title="Fit to Content (Maximize)"
                             >
-                                <Move size={20} />
+                                <Maximize size={20} />
                             </button>
                         </div>
 
@@ -224,7 +251,7 @@ export const BaseDiagramEditor: React.FC<BaseDiagramEditorProps> = ({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 relative flex overflow-hidden">
+            <div className="flex-1 relative flex overflow-hidden" ref={containerRef}>
                 <DiagramCanvas
                     nodes={nodes}
                     connections={connections}

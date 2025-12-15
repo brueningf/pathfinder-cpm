@@ -1,12 +1,4 @@
-export interface Point {
-    x: number;
-    y: number;
-}
-
-export interface Size {
-    width: number;
-    height: number;
-}
+import { Point, Size } from './diagram';
 
 export type EntityType = 'process' | 'external_entity' | 'data_store' | 'state' | 'boundary';
 
